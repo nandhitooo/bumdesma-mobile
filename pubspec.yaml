@@ -1,0 +1,52 @@
+name: absensi_bumdesma
+description: >
+  Aplikasi mobile Sistem Manajemen Absensi Karyawan Berbasis QR Code
+  pada BUMDESMA Podo Rukun LKD.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # State management
+  provider: ^6.1.2
+
+  # Networking (ready to swap mock services for a real backend)
+  http: ^1.2.2
+
+  # Env vars (.env)
+  flutter_dotenv: ^6.0.1
+
+  # QR scanning
+  mobile_scanner: ^7.4.0
+
+  # Location / Geofencing
+  geolocator: ^14.0.3
+  permission_handler: ^12.0.3
+
+  # Maps (office location preview)
+  google_maps_flutter: ^2.9.0
+
+  # Date formatting
+  intl: ^0.20.3
+
+  # File attachment for Izin/Cuti (.pdf / .docx)
+  file_picker: ^12.0.0-beta.7
+
+  # Local persistence (session token, first-login flag, etc.)
+  shared_preferences: ^2.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
