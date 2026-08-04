@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../state/attendance_provider.dart';
 import '../../state/auth_provider.dart';
+import '../../state/notification_provider.dart';
 import '../leave/leave_form_screen.dart';
 import '../notification/notification_panel.dart';
 import '../scan/scan_select_screen.dart';
@@ -24,7 +25,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final nip = context.read<AuthProvider>().user?.nip;
-      if (nip != null) context.read<AttendanceProvider>().refreshToday(nip);
+      if (nip != null) {
+        context.read<AttendanceProvider>().refreshToday(nip);
+        context.read<NotificationProvider>().refresh(nip);
+      }
     });
   }
 
@@ -36,20 +40,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return 'Selamat Malam';
   }
 
+  Future<void> _openNotifications(String nip) async {
+    // Clear the dot immediately for snappy feedback — the panel itself
+    // marks everything read on the backend as soon as it opens (see
+    // notification_panel.dart initState), then we reconcile with the
+    // server once it's closed in case that call failed.
+    context.read<NotificationProvider>().clear();
+    await showNotificationPanel(context, nip);
+    if (!mounted) return;
+    context.read<NotificationProvider>().refresh(nip);
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
     final attendance = context.watch<AttendanceProvider>();
+    final notification = context.watch<NotificationProvider>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: RefreshIndicator(
         onRefresh: () async {
-          if (user != null) await attendance.refreshToday(user.nip);
+          if (user != null) {
+            await attendance.refreshToday(user.nip);
+            if (!mounted) return;
+            await context.read<NotificationProvider>().refresh(user.nip);
+          }
         },
         child: CustomScrollView(
           slivers: [
-            SliverToBoxAdapter(child: _buildHeader(user?.nama ?? '', user?.nip ?? '')),
+            SliverToBoxAdapter(
+              child: _buildHeader(
+                user?.nama ?? '',
+                user?.nip ?? '',
+                notification.hasUnread,
+              ),
+            ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
               sliver: SliverList(
@@ -100,7 +126,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildHeader(String nama, String nip) {
+  Widget _buildHeader(String nama, String nip, bool hasUnread) {
     final today = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now());
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
@@ -139,15 +165,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               InkWell(
                 borderRadius: BorderRadius.circular(24),
-                onTap: () => showNotificationPanel(context, nip),
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.notifications_rounded,
-                      color: Colors.white, size: 22),
+                onTap: () => _openNotifications(nip),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.notifications_rounded,
+                          color: Colors.white, size: 22),
+                    ),
+                    if (hasUnread)
+                      Positioned(
+                        top: -1,
+                        right: -1,
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: AppColors.danger,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.primary, width: 2),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],

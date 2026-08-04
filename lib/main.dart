@@ -9,11 +9,14 @@ import 'services/auth_service.dart';
 import 'services/http_attendance_service.dart';
 import 'services/http_auth_service.dart';
 import 'services/http_leave_service.dart';
+import 'services/http_notification_service.dart';
 import 'services/http_settings_service.dart';
 import 'services/leave_service.dart';
+import 'services/notification_service.dart';
 import 'services/settings_service.dart';
 import 'state/attendance_provider.dart';
 import 'state/auth_provider.dart';
+import 'state/notification_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,12 +30,16 @@ Future<void> main() async {
   await initializeDateFormatting('id_ID', null);
 
   // Swap the mock services for the real Node.js/Express backend
-  // (bumdesma-backend). Comment these four lines out to fall back to the
+  // (bumdesma-backend). Comment these lines out to fall back to the
   // in-memory mocks, e.g. for UI work with no backend running.
   AuthService.instance = HttpAuthService();
   AttendanceService.instance = HttpAttendanceService();
   LeaveService.instance = HttpLeaveService();
   SettingsService.instance = HttpSettingsService();
+  // NOTE: this was missing — NotificationService.instance was silently
+  // still pointing at MockNotificationService, so real piket/izin-cuti
+  // notifications from the backend never reached the Dashboard bell.
+  NotificationService.instance = HttpNotificationService();
 
   runApp(const AbsensiBumdesmaApp());
 }
@@ -46,6 +53,7 @@ class AbsensiBumdesmaApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => AttendanceProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: MaterialApp(
         title: 'Absensi BUMDESMA Podo Rukun LKD',

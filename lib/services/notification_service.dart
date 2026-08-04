@@ -11,6 +11,10 @@ abstract class NotificationService {
 
   Future<List<AppNotification>> getNotifications(String nip);
 
+  /// Jumlah notifikasi yang belum dibaca — dipakai untuk menampilkan titik
+  /// merah pada ikon lonceng di Dashboard (lihat NotificationProvider).
+  Future<int> unreadCount(String nip);
+
   Future<void> markAllRead(String nip);
 }
 
@@ -43,6 +47,13 @@ class MockNotificationService implements NotificationService {
     final list = List<AppNotification>.from(_byNip[nip] ?? []);
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
+  }
+
+  @override
+  Future<int> unreadCount(String nip) async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    final list = _byNip[nip] ?? [];
+    return list.where((n) => !n.read).length;
   }
 
   @override

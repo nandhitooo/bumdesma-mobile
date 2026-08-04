@@ -27,7 +27,7 @@ class HttpLeaveService implements LeaveService {
     required DateTime startDate,
     required DateTime endDate,
     required String reason,
-    String? attachmentFileName,
+    String? attachmentPath,
   }) async {
     final fields = {
       'jenis': type == LeaveType.cuti ? 'cuti' : 'izin',
@@ -36,9 +36,12 @@ class HttpLeaveService implements LeaveService {
       'alasan': reason,
     };
 
-    // attachmentFileName here is expected to be a full local path selected
-    // via file_picker; adjust the caller if it only passes a bare name.
-    final file = attachmentFileName != null ? File(attachmentFileName) : null;
+    // attachmentPath is the actual local filesystem path returned by
+    // file_picker (PlatformFile.path) — NOT just the bare filename. Using
+    // only the filename here previously meant File(...) pointed at a path
+    // that didn't exist, so the file silently never made it into the
+    // multipart request and file_lampiran stayed null on the backend.
+    final file = attachmentPath != null ? File(attachmentPath) : null;
 
     final res = await _api.postMultipart('/leaves', fields: fields, file: file);
     return _fromJson(res['data'] as Map<String, dynamic>);

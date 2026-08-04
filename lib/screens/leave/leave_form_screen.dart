@@ -78,7 +78,11 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
         startDate: _startDate!,
         endDate: _endDate!,
         reason: _reasonController.text.trim(),
-        attachmentFileName: _attachment?.name,
+        // IMPORTANT: pass the actual local file path (PlatformFile.path),
+        // not PlatformFile.name — the previous code passed only the bare
+        // filename here, which HttpLeaveService then tried to open as a
+        // path, so the attachment silently never reached the backend.
+        attachmentPath: _attachment?.path,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
