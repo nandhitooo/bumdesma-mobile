@@ -17,10 +17,20 @@ abstract class AuthService {
 
   Future<AppUser> login({required String nip, required String password});
 
+  /// [oldPassword] wajib diisi — backend memverifikasinya sebelum
+  /// mengizinkan penggantian password. [email] wajib diisi kalau akun
+  /// karyawan ini belum punya email pemulihan tercatat sama sekali.
   Future<void> changePassword({
     required String nip,
+    required String oldPassword,
     required String newPassword,
+    String? email,
   });
+
+  /// Melengkapi/memperbarui email pemulihan TANPA mengganti password.
+  /// Dipakai oleh layar "Lengkapi Email" untuk karyawan lama yang sudah
+  /// tidak lagi melewati layar ganti password tapi belum punya email.
+  Future<void> updateEmail({required String nip, required String email});
 
   Future<void> logout();
 }
@@ -44,6 +54,7 @@ class MockAuthService implements AuthService {
       nama: 'Siti Aminah',
       jabatan: 'Teller',
       departemen: 'Keuangan',
+      email: 'siti.aminah@example.com',
     ),
   };
 
@@ -60,18 +71,41 @@ class MockAuthService implements AuthService {
       throw AuthException('NIP atau password salah.');
     }
 
-    return profile.copyWith(mustChangePassword: cred.mustChange);
+    final hasEmail = profile.email != null && profile.email!.isNotEmpty;
+    return profile.copyWith(
+      mustChangePassword: cred.mustChange,
+      mustAddEmail: !hasEmail && !cred.mustChange,
+    );
   }
 
   @override
   Future<void> changePassword({
     required String nip,
+    required String oldPassword,
     required String newPassword,
+    String? email,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
     final cred = _db[nip];
     if (cred == null) throw AuthException('User tidak ditemukan.');
     _db[nip] = _Credential(password: newPassword, mustChange: false);
+
+    final profile = _profiles[nip];
+    if (profile != null) {
+      final nextEmail = (email != null && email.isNotEmpty) ? email : profile.email;
+      if (nextEmail == null || nextEmail.isEmpty) {
+        throw AuthException('Email wajib diisi untuk keperluan pemulihan password.');
+      }
+      _profiles[nip] = profile.copyWith(email: nextEmail);
+    }
+  }
+
+  @override
+  Future<void> updateEmail({required String nip, required String email}) async {
+    await Future.delayed(const Duration(milliseconds: 250));
+    final profile = _profiles[nip];
+    if (profile == null) throw AuthException('User tidak ditemukan.');
+    _profiles[nip] = profile.copyWith(email: email);
   }
 
   @override

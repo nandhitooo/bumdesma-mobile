@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../state/auth_provider.dart';
+import '../login/add_email_screen.dart';
 import '../login/change_password_screen.dart';
 import '../../shell/main_shell.dart';
 
@@ -27,16 +28,25 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submit() async {
     final auth = context.read<AuthProvider>();
-    final ok = await auth.login(
-      _nipController.text.trim(),
-      _passwordController.text,
-    );
+    final typedPassword = _passwordController.text;
+    final ok = await auth.login(_nipController.text.trim(), typedPassword);
     if (!mounted) return;
 
     if (ok) {
       if (auth.mustChangePassword) {
+        // Bawa password yang baru saja dipakai login sebagai "password
+        // lama" — karyawan tidak perlu mengetiknya ulang di layar
+        // berikutnya, dan backend memang mewajibkan field ini.
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
+          MaterialPageRoute(
+            builder: (_) => ChangePasswordScreen(temporaryPassword: typedPassword),
+          ),
+        );
+      } else if (auth.mustAddEmail) {
+        // Akun lama yang sudah tidak lagi wajib ganti password, tapi
+        // belum punya email pemulihan tercatat sama sekali.
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const AddEmailScreen()),
         );
       } else {
         Navigator.of(context).pushReplacement(

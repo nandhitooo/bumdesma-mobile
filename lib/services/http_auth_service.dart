@@ -25,12 +25,15 @@ class HttpAuthService implements AuthService {
         nip: user['nip'] as String,
       );
 
+      final email = user['email'] as String?;
       return AppUser(
         nip: user['nip'] as String,
         nama: user['name'] as String,
         jabatan: user['jabatan'] as String? ?? '-',
         departemen: user['departemen'] as String? ?? '-',
+        email: email,
         mustChangePassword: data['mustChangePassword'] as bool? ?? false,
+        mustAddEmail: data['mustAddEmail'] as bool? ?? (email == null || email.isEmpty),
       );
     } on ApiException catch (e) {
       throw AuthException(e.message);
@@ -40,17 +43,29 @@ class HttpAuthService implements AuthService {
   @override
   Future<void> changePassword({
     required String nip,
+    required String oldPassword,
     required String newPassword,
+    String? email,
   }) async {
     try {
-      // NB: bumdesma-backend's /auth/change-password also expects
-      // `oldPassword` for a self-service password change. For the
-      // mandatory first-login flow, the temporary password issued by
-      // Admin doubles as `oldPassword` — pass it in from the screen that
-      // collects it if you have it; otherwise ask the user to re-enter it.
+      // NB: oldPassword used to be missing here entirely, so the backend
+      // (which requires it to verify the account) always rejected this
+      // call with "Password lama tidak sesuai" — the whole first-login /
+      // voluntary password-change flow was silently broken end-to-end.
       await _api.post('/auth/change-password', body: {
+        'oldPassword': oldPassword,
         'newPassword': newPassword,
+        if (email != null && email.isNotEmpty) 'email': email,
       });
+    } on ApiException catch (e) {
+      throw AuthException(e.message);
+    }
+  }
+
+  @override
+  Future<void> updateEmail({required String nip, required String email}) async {
+    try {
+      await _api.post('/auth/email', body: {'email': email});
     } on ApiException catch (e) {
       throw AuthException(e.message);
     }

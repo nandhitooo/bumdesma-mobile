@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../state/auth_provider.dart';
+import '../login/add_email_screen.dart';
 import '../login/change_password_screen.dart';
 import '../login/login_screen.dart';
 
@@ -43,7 +44,8 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthProvider>().user;
+    final auth = context.watch<AuthProvider>();
+    final user = auth.user;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -95,16 +97,41 @@ class ProfileScreen extends StatelessWidget {
                   _DataRow(label: 'NIP', value: user?.nip ?? '-'),
                   _DataRow(label: 'Jabatan', value: user?.jabatan ?? '-'),
                   _DataRow(label: 'Departemen', value: user?.departemen ?? '-'),
+                  _DataRow(
+                    label: 'Email Pemulihan',
+                    value: (user?.email == null || user!.email!.isEmpty)
+                        ? 'Belum diisi'
+                        : user.email!,
+                    valueColor:
+                        (user?.email == null || user!.email!.isEmpty) ? AppColors.warning : null,
+                  ),
                   const SizedBox(height: 14),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Edit profil belum tersedia pada versi ini.')),
-                      );
-                    },
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                    label: const Text('Edit'),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Edit profil belum tersedia pada versi ini.')),
+                            );
+                          },
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          label: const Text('Edit'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const AddEmailScreen()),
+                          ),
+                          icon: const Icon(Icons.email_outlined, size: 18),
+                          label: Text(
+                              (user?.email == null || user!.email!.isEmpty) ? 'Isi Email' : 'Ubah Email'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -139,7 +166,8 @@ class ProfileScreen extends StatelessWidget {
 class _DataRow extends StatelessWidget {
   final String label;
   final String value;
-  const _DataRow({required this.label, required this.value});
+  final Color? valueColor;
+  const _DataRow({required this.label, required this.value, this.valueColor});
 
   @override
   Widget build(BuildContext context) {
@@ -150,7 +178,12 @@ class _DataRow extends StatelessWidget {
           style: const TextStyle(fontSize: 13.5, color: AppColors.textPrimary),
           children: [
             TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
-            TextSpan(text: value),
+            TextSpan(
+              text: value,
+              style: valueColor != null
+                  ? TextStyle(color: valueColor, fontWeight: FontWeight.w600)
+                  : null,
+            ),
           ],
         ),
       ),

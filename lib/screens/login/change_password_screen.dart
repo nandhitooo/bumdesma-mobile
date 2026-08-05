@@ -5,44 +5,100 @@ import '../../core/theme/app_theme.dart';
 import '../../state/auth_provider.dart';
 import '../../shell/main_shell.dart';
 
-/// Shown after first login using the temporary password given by Admin.
-/// Per Flow Karyawan (Gambar 3.11): mandatory before the employee can
-/// reach the Dashboard.
+/// Shown after first login using the temporary password given by Admin
+/// (isVoluntary=false, wajib — per Flow Karyawan Gambar 3.11), atau saat
+/// karyawan mengganti password sendiri lewat Profile (isVoluntary=true).
+///
+/// Email pemulihan WAJIB terisi:
+/// - Selalu wajib di layar ini pada login pertama.
+/// - Wajib juga pada penggantian password sukarela jika akun belum
+///   memiliki email tercatat sama sekali (lihat AuthProvider.mustAddEmail).
 class ChangePasswordScreen extends StatefulWidget {
   final bool isVoluntary; // true when opened from Profile, not forced
-  const ChangePasswordScreen({super.key, this.isVoluntary = false});
+  /// Password yang baru saja dipakai untuk login (diteruskan dari
+  /// LoginScreen), dipakai otomatis sebagai "password lama" pada alur
+  /// wajib ganti password login pertama — karyawan tidak perlu mengetik
+  /// ulang. Tidak dipakai kalau [isVoluntary] true.
+  final String? temporaryPassword;
+
+  const ChangePasswordScreen({
+    super.key,
+    this.isVoluntary = false,
+    this.temporaryPassword,
+  });
 
   @override
   State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
 }
 
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
+  final _oldPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmController = TextEditingController();
+  late final TextEditingController _emailController;
   bool _obscure = true;
+
+  static final _emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+
+  @override
+  void initState() {
+    super.initState();
+    final currentEmail = context.read<AuthProvider>().user?.email;
+    _emailController = TextEditingController(text: currentEmail ?? '');
+  }
 
   @override
   void dispose() {
+    _oldPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmController.dispose();
+    _emailController.dispose();
     super.dispose();
+  }
+
+  /// Login pertama: email selalu wajib. Penggantian sukarela: wajib hanya
+  /// kalau akun ini memang belum punya email tercatat sama sekali.
+  bool get _emailRequired {
+    if (!widget.isVoluntary) return true;
+    return context.read<AuthProvider>().mustAddEmail;
   }
 
   Future<void> _submit() async {
     final newPass = _newPasswordController.text;
     final confirm = _confirmController.text;
+    final email = _emailController.text.trim();
 
-    if (newPass.length < 6) {
-      _showError('Password baru minimal 6 karakter.');
+    if (newPass.length < 8) {
+      _showError('Password baru minimal 8 karakter.');
       return;
     }
     if (newPass != confirm) {
       _showError('Konfirmasi password tidak cocok.');
       return;
     }
+    if (_emailRequired && email.isEmpty) {
+      _showError('Email wajib diisi untuk keperluan pemulihan password.');
+      return;
+    }
+    if (email.isNotEmpty && !_emailRegex.hasMatch(email)) {
+      _showError('Format email tidak valid.');
+      return;
+    }
+
+    final oldPassword = widget.isVoluntary
+        ? _oldPasswordController.text
+        : (widget.temporaryPassword ?? '');
+    if (oldPassword.isEmpty) {
+      _showError('Password saat ini wajib diisi.');
+      return;
+    }
 
     final auth = context.read<AuthProvider>();
-    final ok = await auth.changePassword(newPass);
+    final ok = await auth.changePassword(
+      oldPassword: oldPassword,
+      newPassword: newPass,
+      email: email.isEmpty ? null : email,
+    );
     if (!mounted) return;
 
     if (ok) {
@@ -56,8 +112,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           MaterialPageRoute(builder: (_) => const MainShell()),
         );
       }
-    } else {
-      _showError('Gagal memperbarui password. Coba lagi.');
+    } else if (auth.error != null) {
+      _showError(auth.error!);
     }
   }
 
@@ -68,6 +124,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final emailRequired = _emailRequired;
 
     return Scaffold(
       appBar: AppBar(
@@ -89,10 +146,21 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               ),
               const SizedBox(height: 6),
               const Text(
-                'Ini adalah login pertama Anda. Silakan ganti password sementara dengan password baru sebelum melanjutkan.',
+                'Ini adalah login pertama Anda. Silakan ganti password sementara dengan password baru, dan lengkapi email pemulihan sebelum melanjutkan.',
                 style: TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 24),
+            ],
+            if (widget.isVoluntary) ...[
+              TextField(
+                controller: _oldPasswordController,
+                obscureText: _obscure,
+                decoration: const InputDecoration(
+                  labelText: 'Password Saat Ini',
+                  prefixIcon: Icon(Icons.lock_person_outlined),
+                ),
+              ),
+              const SizedBox(height: 14),
             ],
             TextField(
               controller: _newPasswordController,
@@ -116,6 +184,19 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 labelText: 'Konfirmasi Password Baru',
                 prefixIcon: Icon(Icons.lock_outline),
               ),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                labelText: emailRequired ? 'Email Pemulihan *' : 'Email Pemulihan',
+                hintText: 'nama@email.com',
+                prefixIcon: const Icon(Icons.email_outlined),
+                helperText:
+                    'Dipakai untuk verifikasi jika suatu saat Anda lupa password.',
+                helperMaxLines: 2,
+              ),
               onSubmitted: (_) => _submit(),
             ),
             const SizedBox(height: 24),
@@ -130,7 +211,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : const Text('Simpan Password'),
+                  : const Text('Simpan'),
             ),
           ],
         ),
