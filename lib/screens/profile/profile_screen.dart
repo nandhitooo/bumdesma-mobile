@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../../core/theme/app_theme.dart';
 import '../../state/auth_provider.dart';
 import '../login/add_email_screen.dart';
@@ -25,7 +24,8 @@ class ProfileScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Keluar', style: TextStyle(color: AppColors.danger)),
+            child:
+                const Text('Keluar', style: TextStyle(color: AppColors.danger)),
           ),
         ],
       ),
@@ -91,19 +91,20 @@ class ProfileScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Data Pegawai',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                      style:
+                          TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                   const SizedBox(height: 14),
                   _DataRow(label: 'Nama Lengkap', value: user?.nama ?? '-'),
                   _DataRow(label: 'NIP', value: user?.nip ?? '-'),
                   _DataRow(label: 'Jabatan', value: user?.jabatan ?? '-'),
-                  _DataRow(label: 'Departemen', value: user?.departemen ?? '-'),
                   _DataRow(
-                    label: 'Email Pemulihan',
+                    label: 'Email',
                     value: (user?.email == null || user!.email!.isEmpty)
                         ? 'Belum diisi'
                         : user.email!,
-                    valueColor:
-                        (user?.email == null || user!.email!.isEmpty) ? AppColors.warning : null,
+                    valueColor: (user?.email == null || user!.email!.isEmpty)
+                        ? AppColors.warning
+                        : null,
                   ),
                   const SizedBox(height: 14),
                   Row(
@@ -113,7 +114,8 @@ class ProfileScreen extends StatelessWidget {
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                  content: Text('Edit profil belum tersedia pada versi ini.')),
+                                  content: Text(
+                                      'Edit profil belum tersedia pada versi ini.')),
                             );
                           },
                           icon: const Icon(Icons.edit_outlined, size: 18),
@@ -124,11 +126,14 @@ class ProfileScreen extends StatelessWidget {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const AddEmailScreen()),
+                            MaterialPageRoute(
+                                builder: (_) => const AddEmailScreen()),
                           ),
                           icon: const Icon(Icons.email_outlined, size: 18),
                           label: Text(
-                              (user?.email == null || user!.email!.isEmpty) ? 'Isi Email' : 'Ubah Email'),
+                              (user?.email == null || user!.email!.isEmpty)
+                                  ? 'Isi Email'
+                                  : 'Ubah Email'),
                         ),
                       ),
                     ],
@@ -177,7 +182,9 @@ class _DataRow extends StatelessWidget {
         text: TextSpan(
           style: const TextStyle(fontSize: 13.5, color: AppColors.textPrimary),
           children: [
-            TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
+            TextSpan(
+                text: '$label: ',
+                style: const TextStyle(fontWeight: FontWeight.w600)),
             TextSpan(
               text: value,
               style: valueColor != null
