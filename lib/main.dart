@@ -56,7 +56,7 @@ class AbsensiBumdesmaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: MaterialApp(
-        title: 'Absensi BUMDESMA Podo Rukun LKD',
+        title: 'BUMDESMA',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         home: const LoginScreen(),
