@@ -18,6 +18,11 @@ dependencies:
 
   # Networking (ready to swap mock services for a real backend)
   http: ^1.2.2
+  # Needed so file uploads (Izin/Cuti lampiran) are sent with the correct
+  # Content-Type instead of defaulting to application/octet-stream, which
+  # the backend's mimetype allow-list was rejecting even for valid PDFs.
+  http_parser: ^4.0.2
+  mime: ^1.0.5
 
   # Env vars (.env)
   flutter_dotenv: ^6.0.1
@@ -58,4 +63,3 @@ flutter:
   assets:
     - .env
     - assets/images/
-

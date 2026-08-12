@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 
 import '../env/env.dart';
 import 'session_store.dart';
@@ -40,8 +41,8 @@ class ApiClient {
     final cleanPath = path.startsWith('/') ? path : '/$path';
     final normalizedQuery =
         query?.map((k, v) => MapEntry(k, v?.toString())) ?? const {};
-    return Uri.parse('$_baseUrl$cleanPath')
-        .replace(queryParameters: normalizedQuery.isEmpty ? null : normalizedQuery);
+    return Uri.parse('$_baseUrl$cleanPath').replace(
+        queryParameters: normalizedQuery.isEmpty ? null : normalizedQuery);
   }
 
   Future<Map<String, String>> _headers({bool json = true}) async {
@@ -69,35 +70,55 @@ class ApiClient {
 
   /// multipart/form-data upload, used by POST /leaves (lampiran .pdf/.docx).
   Future<dynamic> postMultipart(
-  String path, {
-  required Map<String, String> fields,
-  File? file,
-  String fileField = 'file',
-  bool isRetry = false,
-}) async {
-  final request = http.MultipartRequest('POST', _uri(path));
-  final token = await SessionStore.getAccessToken();
-  if (token != null) request.headers['Authorization'] = 'Bearer $token';
-  request.fields.addAll(fields);
-  if (file != null) {
-    request.files.add(await http.MultipartFile.fromPath(fileField, file.path));
-  }
+    String path, {
+    required Map<String, String> fields,
+    File? file,
+    String fileField = 'file',
+    bool isRetry = false,
+  }) async {
+    final request = http.MultipartRequest('POST', _uri(path));
+    final token = await SessionStore.getAccessToken();
+    if (token != null) request.headers['Authorization'] = 'Bearer $token';
+    request.fields.addAll(fields);
 
-  final streamed = await request.send();
-  final response = await http.Response.fromStream(streamed);
-
-  // Was missing entirely: unlike _send(), a multipart upload never retried
-  // after a 401, so an expired access token silently killed every
-  // "Ajukan Izin & Cuti" submission with an unhelpful generic error.
-  if (response.statusCode == 401 && !isRetry) {
-    final refreshed = await _tryRefreshToken();
-    if (refreshed) {
-      return postMultipart(path, fields: fields, file: file, fileField: fileField, isRetry: true);
+    if (file != null) {
+      // IMPORTANT: without an explicit contentType, http.MultipartFile
+      // defaults every upload to application/octet-stream regardless of
+      // the file's real extension. The backend's mimetype allow-list then
+      // rejects it with "Format file tidak didukung" even for a valid
+      // .pdf/.docx. Look the real MIME type up from the filename instead.
+      final mimeType = lookupMimeType(file.path) ?? 'application/octet-stream';
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          fileField,
+          file.path,
+          contentType: MediaType.parse(mimeType),
+        ),
+      );
     }
-  }
 
-  return _decode(response);
-}
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+
+    // Access token expired -> refresh once, then retry. This was missing
+    // entirely before: unlike _send(), a multipart upload never retried
+    // after a 401, so an expired access token silently killed every
+    // "Ajukan Izin & Cuti" submission.
+    if (response.statusCode == 401 && !isRetry) {
+      final refreshed = await _tryRefreshToken();
+      if (refreshed) {
+        return postMultipart(
+          path,
+          fields: fields,
+          file: file,
+          fileField: fileField,
+          isRetry: true,
+        );
+      }
+    }
+
+    return _decode(response);
+  }
 
   Future<dynamic> _send(
     String method,

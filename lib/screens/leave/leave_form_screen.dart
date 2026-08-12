@@ -2,11 +2,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../core/network/api_client.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/leave_request.dart';
 import '../../services/leave_service.dart';
 import '../../state/auth_provider.dart';
-import '../../core/network/api_client.dart';
 
 /// Mirrors "Ajukan Izin & Cuti" (Gambar 3.25): tanggal, jenis (Izin/Cuti),
 /// alasan, dan lampiran file .pdf/.docx (mis. surat dokter).
@@ -97,12 +97,15 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
         _reasonController.clear();
       });
     } on ApiException catch (e) {
-      // Show the backend's actual reason (e.g. "Alasan wajib diisi.",
-      // "Format file tidak didukung...", "Password lama tidak sesuai" etc.)
-      // instead of masking every failure with the same generic message.
+      // Surface the backend's actual reason (e.g. "Alasan wajib diisi.",
+      // "Format file tidak didukung...", validation errors, etc.) instead
+      // of masking every failure behind the same generic message — this
+      // is what was hiding the real cause of every previous failure.
       _showError(e.message);
-    } catch (_) {
-      _showError('Gagal mengirim pengajuan. Coba lagi.');
+    } catch (e) {
+      // Fallback for genuinely unexpected errors (network unreachable,
+      // file couldn't be read, etc.) — still show something useful.
+      _showError('Gagal mengirim pengajuan: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
