@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../models/leave_request.dart';
 import '../../services/leave_service.dart';
 import '../../state/auth_provider.dart';
+import '../../core/network/api_client.dart';
 
 /// Mirrors "Ajukan Izin & Cuti" (Gambar 3.25): tanggal, jenis (Izin/Cuti),
 /// alasan, dan lampiran file .pdf/.docx (mis. surat dokter).
@@ -95,6 +96,11 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
         _attachment = null;
         _reasonController.clear();
       });
+    } on ApiException catch (e) {
+      // Show the backend's actual reason (e.g. "Alasan wajib diisi.",
+      // "Format file tidak didukung...", "Password lama tidak sesuai" etc.)
+      // instead of masking every failure with the same generic message.
+      _showError(e.message);
     } catch (_) {
       _showError('Gagal mengirim pengajuan. Coba lagi.');
     } finally {

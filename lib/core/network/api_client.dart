@@ -69,23 +69,35 @@ class ApiClient {
 
   /// multipart/form-data upload, used by POST /leaves (lampiran .pdf/.docx).
   Future<dynamic> postMultipart(
-    String path, {
-    required Map<String, String> fields,
-    File? file,
-    String fileField = 'file',
-  }) async {
-    final request = http.MultipartRequest('POST', _uri(path));
-    final token = await SessionStore.getAccessToken();
-    if (token != null) request.headers['Authorization'] = 'Bearer $token';
-    request.fields.addAll(fields);
-    if (file != null) {
-      request.files.add(await http.MultipartFile.fromPath(fileField, file.path));
-    }
-
-    final streamed = await request.send();
-    final response = await http.Response.fromStream(streamed);
-    return _decode(response);
+  String path, {
+  required Map<String, String> fields,
+  File? file,
+  String fileField = 'file',
+  bool isRetry = false,
+}) async {
+  final request = http.MultipartRequest('POST', _uri(path));
+  final token = await SessionStore.getAccessToken();
+  if (token != null) request.headers['Authorization'] = 'Bearer $token';
+  request.fields.addAll(fields);
+  if (file != null) {
+    request.files.add(await http.MultipartFile.fromPath(fileField, file.path));
   }
+
+  final streamed = await request.send();
+  final response = await http.Response.fromStream(streamed);
+
+  // Was missing entirely: unlike _send(), a multipart upload never retried
+  // after a 401, so an expired access token silently killed every
+  // "Ajukan Izin & Cuti" submission with an unhelpful generic error.
+  if (response.statusCode == 401 && !isRetry) {
+    final refreshed = await _tryRefreshToken();
+    if (refreshed) {
+      return postMultipart(path, fields: fields, file: file, fileField: fileField, isRetry: true);
+    }
+  }
+
+  return _decode(response);
+}
 
   Future<dynamic> _send(
     String method,
