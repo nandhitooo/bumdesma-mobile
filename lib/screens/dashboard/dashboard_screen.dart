@@ -41,10 +41,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _openNotifications(String nip) async {
-    // Clear the dot immediately for snappy feedback — the panel itself
-    // marks everything read on the backend as soon as it opens (see
-    // notification_panel.dart initState), then we reconcile with the
-    // server once it's closed in case that call failed.
     context.read<NotificationProvider>().clear();
     await showNotificationPanel(context, nip);
     if (!mounted) return;
@@ -60,6 +56,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: RefreshIndicator(
+        color: AppColors.primary,
         onRefresh: () async {
           if (user != null) {
             await attendance.refreshToday(user.nip);
@@ -72,6 +69,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             SliverToBoxAdapter(
               child: _buildHeader(
                 user?.nama ?? '',
+                user?.jabatan ?? '',
                 user?.nip ?? '',
                 notification.hasUnread,
               ),
@@ -84,10 +82,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     record: attendance.today,
                     loading: attendance.loading,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 22),
                   const Text(
                     'Aksi Cepat',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -126,83 +128,151 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildHeader(String nama, String nip, bool hasUnread) {
-    final today = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now());
+  Widget _buildHeader(String nama, String jabatan, String nip, bool hasUnread) {
+    final today =
+        DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now());
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
       decoration: const BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(28),
-          bottomRight: Radius.circular(28),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.primary, AppColors.primaryLight],
         ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x2616423C),
+            blurRadius: 20,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      // SafeArea (top only) memastikan konten tidak ketiban status bar /
+      // notch, sementara gradient di atas tetap full-bleed sampai ujung layar.
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 30),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${_greeting()},',
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.16),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          width: 1.4),
                     ),
-                    Text(
-                      nama.isEmpty ? '-' : nama,
+                    alignment: Alignment.center,
+                    child: Text(
+                      nama.isNotEmpty ? nama[0].toUpperCase() : '?',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 19,
+                        fontSize: 20,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ],
-                ),
-              ),
-              InkWell(
-                borderRadius: BorderRadius.circular(24),
-                onTap: () => _openNotifications(nip),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.notifications_rounded,
-                          color: Colors.white, size: 22),
-                    ),
-                    if (hasUnread)
-                      Positioned(
-                        top: -1,
-                        right: -1,
-                        child: Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: AppColors.danger,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.primary, width: 2),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${_greeting()},',
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 12.5),
+                        ),
+                        Text(
+                          nama.isEmpty ? '-' : nama,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 19,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                      ),
+                        if (jabatan.isNotEmpty)
+                          Text(
+                            jabatan,
+                            style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.7),
+                                fontSize: 12),
+                          ),
+                      ],
+                    ),
+                  ),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(24),
+                    onTap: () => _openNotifications(nip),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.14),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.notifications_rounded,
+                              color: Colors.white, size: 22),
+                        ),
+                        if (hasUnread)
+                          Positioned(
+                            top: -1,
+                            right: -1,
+                            child: Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: AppColors.danger,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: AppColors.primary, width: 2),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today_rounded,
+                        size: 14, color: Colors.white.withValues(alpha: 0.85)),
+                    const SizedBox(width: 8),
+                    Text(
+                      today,
+                      style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          fontSize: 12.5),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          Text(
-            today,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12.5),
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -92,10 +92,12 @@ class HttpAttendanceService implements AttendanceService {
 
     return rows.map((row) {
       final date = DateTime.parse(row['tanggal'] as String);
-      final jamMasuk =
-          row['jam_masuk'] != null ? DateTime.parse(row['jam_masuk'] as String) : null;
-      final jamPulang =
-          row['jam_pulang'] != null ? DateTime.parse(row['jam_pulang'] as String) : null;
+      final jamMasuk = row['jam_masuk'] != null
+          ? DateTime.parse(row['jam_masuk'] as String).toLocal()
+          : null;
+      final jamPulang = row['jam_pulang'] != null
+          ? DateTime.parse(row['jam_pulang'] as String).toLocal()
+          : null;
 
       return DailyAttendance(
         date: date,

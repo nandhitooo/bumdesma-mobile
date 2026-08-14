@@ -43,7 +43,7 @@ class HttpNotificationService implements NotificationService {
       type: type,
       title: row['title'] as String,
       description: row['message'] as String,
-      createdAt: DateTime.parse(row['created_at'] as String),
+      createdAt: DateTime.parse(row['created_at'] as String).toLocal(),
       read: row['is_read'] as bool? ?? false,
     );
   }

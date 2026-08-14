@@ -17,11 +17,12 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _index = 0;
 
+  // Urutan ditukar: Beranda, Izin, [Scan], Riwayat, Profil.
   final _pages = const [
     DashboardScreen(),
-    HistoryScreen(),
-    SizedBox.shrink(), // placeholder — Scan opens as a full-screen route
     LeaveFormScreen(),
+    SizedBox.shrink(), // placeholder — Scan opens as a full-screen route
+    HistoryScreen(),
     ProfileScreen(),
   ];
 
@@ -63,15 +64,15 @@ class _MainShellState extends State<MainShell> {
                 onTap: () => _onTap(0),
               ),
               _NavButton(
-                icon: Icons.history_rounded,
-                label: 'Riwayat',
+                icon: Icons.event_note_rounded,
+                label: 'Izin',
                 selected: _index == 1,
                 onTap: () => _onTap(1),
               ),
               const SizedBox(width: 48), // space for the notched FAB
               _NavButton(
-                icon: Icons.event_note_rounded,
-                label: 'Izin',
+                icon: Icons.history_rounded,
+                label: 'Riwayat',
                 selected: _index == 3,
                 onTap: () => _onTap(3),
               ),
@@ -113,7 +114,18 @@ class _NavButton extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 24),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding: EdgeInsets.symmetric(
+                  horizontal: selected ? 10 : 0, vertical: 2),
+              decoration: BoxDecoration(
+                color: selected
+                    ? AppColors.primary.withValues(alpha: 0.10)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
             const SizedBox(height: 2),
             Text(label, style: TextStyle(color: color, fontSize: 11)),
           ],

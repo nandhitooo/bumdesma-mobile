@@ -56,7 +56,8 @@ class HttpLeaveService implements LeaveService {
     final target = DateTime(date.year, date.month, date.day);
     return list.any((r) {
       if (r.status != LeaveStatus.disetujui) return false;
-      final start = DateTime(r.startDate.year, r.startDate.month, r.startDate.day);
+      final start =
+          DateTime(r.startDate.year, r.startDate.month, r.startDate.day);
       final end = DateTime(r.endDate.year, r.endDate.month, r.endDate.day);
       return !target.isBefore(start) && !target.isAfter(end);
     });
@@ -65,12 +66,13 @@ class HttpLeaveService implements LeaveService {
   LeaveRequest _fromJson(Map<String, dynamic> row) {
     return LeaveRequest(
       id: row['id'] as String,
-      type: (row['jenis'] as String) == 'cuti' ? LeaveType.cuti : LeaveType.izin,
-      startDate: DateTime.parse(row['tanggal_mulai'] as String),
-      endDate: DateTime.parse(row['tanggal_selesai'] as String),
+      type:
+          (row['jenis'] as String) == 'cuti' ? LeaveType.cuti : LeaveType.izin,
+      startDate: DateTime.parse(row['tanggal_mulai'] as String).toLocal(),
+      endDate: DateTime.parse(row['tanggal_selesai'] as String).toLocal(),
       reason: row['alasan'] as String,
       attachmentFileName: row['file_lampiran'] as String?,
-      submittedAt: DateTime.parse(row['created_at'] as String),
+      submittedAt: DateTime.parse(row['created_at'] as String).toLocal(),
       status: _mapStatus(row['status'] as String?),
     );
   }
