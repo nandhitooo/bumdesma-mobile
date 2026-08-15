@@ -5,6 +5,8 @@ import '../../core/theme/app_theme.dart';
 import '../../models/attendance.dart';
 import '../../services/settings_service.dart';
 import '../../state/auth_provider.dart';
+import '../../widgets/gradient_app_header.dart';
+import '../../widgets/section_card.dart';
 import 'scan_camera_screen.dart';
 
 /// Mirrors "Halaman Pilih Jenis Absen" (Gambar 3.26): karyawan memilih
@@ -12,6 +14,10 @@ import 'scan_camera_screen.dart';
 ///
 /// Per Sub Bab 3.2.7 point 2: jika hari ini Sabtu dan karyawan TIDAK
 /// terjadwal piket, tombol absen disembunyikan sepenuhnya.
+///
+/// Redesigned to use [GradientAppHeader] instead of the plain green
+/// AppBar (for consistency with the rest of the app) and richer option
+/// cards with a short description under each label.
 class ScanSelectScreen extends StatefulWidget {
   const ScanSelectScreen({super.key});
 
@@ -53,79 +59,78 @@ class _ScanSelectScreenState extends State<ScanSelectScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Absen Dulu')),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : !_allowedToday
-              ? _buildNotScheduled()
-              : _buildOptions(),
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          GradientAppHeader(
+            title: 'Absen Dulu',
+            subtitle: 'Pilih jenis absensi yang ingin dilakukan',
+            leading: HeaderIconButton(
+              icon: Icons.arrow_back_rounded,
+              onTap: () => Navigator.of(context).maybePop(),
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary))
+                : !_allowedToday
+                    ? _buildNotScheduled()
+                    : _buildOptions(),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildNotScheduled() {
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.weekend_rounded, size: 56, color: AppColors.textSecondary),
-          const SizedBox(height: 16),
-          const Text(
-            'Bukan Jadwal Piket Anda',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Hari ini Sabtu dan Anda tidak terdaftar pada jadwal piket, sehingga absensi tidak tersedia.',
-            style: TextStyle(color: AppColors.textSecondary),
-            textAlign: TextAlign.center,
-          ),
-        ],
+    return const Padding(
+      padding: EdgeInsets.all(32),
+      child: Center(
+        child: EmptyState(
+          icon: Icons.weekend_rounded,
+          title: 'Bukan Jadwal Piket Anda',
+          message:
+              'Hari ini Sabtu dan Anda tidak terdaftar pada jadwal piket, sehingga absensi tidak tersedia.',
+        ),
       ),
     );
   }
 
   Widget _buildOptions() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SizedBox(height: 12),
-          const Text(
-            'Absen Dulu',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 28),
-          _ScanOptionButton(
-            label: 'Absen Masuk',
-            icon: Icons.login_rounded,
-            color: AppColors.success,
-            onTap: () => _openCamera(ScanType.masuk),
-          ),
-          const SizedBox(height: 16),
-          _ScanOptionButton(
-            label: 'Absen Pulang',
-            icon: Icons.logout_rounded,
-            color: AppColors.danger,
-            onTap: () => _openCamera(ScanType.pulang),
-          ),
-        ],
-      ),
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        _ScanOptionCard(
+          label: 'Absen Masuk',
+          description: 'Catat kehadiran Anda saat tiba di kantor',
+          icon: Icons.login_rounded,
+          color: AppColors.success,
+          onTap: () => _openCamera(ScanType.masuk),
+        ),
+        const SizedBox(height: 14),
+        _ScanOptionCard(
+          label: 'Absen Pulang',
+          description: 'Catat waktu Anda pulang dari kantor',
+          icon: Icons.logout_rounded,
+          color: AppColors.danger,
+          onTap: () => _openCamera(ScanType.pulang),
+        ),
+      ],
     );
   }
 }
 
-class _ScanOptionButton extends StatelessWidget {
+class _ScanOptionCard extends StatelessWidget {
   final String label;
+  final String description;
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
 
-  const _ScanOptionButton({
+  const _ScanOptionCard({
     required this.label,
+    required this.description,
     required this.icon,
     required this.color,
     required this.onTap,
@@ -134,25 +139,44 @@ class _ScanOptionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(AppRadius.lg),
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.divider, width: 1.4),
-        ),
+      child: SectionCard(
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              child: Icon(icon, color: Colors.white),
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [color, color.withValues(alpha: 0.75)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                      color: color.withValues(alpha: 0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4)),
+                ],
+              ),
+              child: Icon(icon, color: Colors.white, size: 24),
             ),
             const SizedBox(width: 16),
-            Text(label,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 3),
+                  Text(description, style: AppTextStyles.caption),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
           ],
         ),
       ),

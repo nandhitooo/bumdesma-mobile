@@ -10,22 +10,50 @@ class StatusBadge extends StatelessWidget {
   ({Color color, String label, IconData icon}) get _spec {
     switch (status) {
       case AttendanceStatus.tepatWaktu:
-        return (color: AppColors.success, label: 'Tepat Waktu', icon: Icons.check_circle);
+        return (
+          color: AppColors.success,
+          label: 'Tepat Waktu',
+          icon: Icons.check_circle_rounded
+        );
       case AttendanceStatus.terlambat:
-        return (color: AppColors.warning, label: 'Terlambat', icon: Icons.check_circle);
+        return (
+          color: AppColors.warning,
+          label: 'Terlambat',
+          icon: Icons.schedule_rounded
+        );
       case AttendanceStatus.diterima:
-        return (color: AppColors.success, label: 'Diterima', icon: Icons.check_circle);
+        return (
+          color: AppColors.success,
+          label: 'Diterima',
+          icon: Icons.check_circle_rounded
+        );
       case AttendanceStatus.lembur:
-        return (color: AppColors.warning, label: 'Lembur', icon: Icons.check_circle);
+        return (
+          color: AppColors.warning,
+          label: 'Lembur',
+          icon: Icons.schedule_rounded
+        );
       case AttendanceStatus.ditolakGeofence:
       case AttendanceStatus.ditolakToken:
       case AttendanceStatus.ditolakDataTidakLengkap:
       case AttendanceStatus.ditolakSudahLengkap:
-        return (color: AppColors.danger, label: 'Ditolak', icon: Icons.cancel);
+        return (
+          color: AppColors.danger,
+          label: 'Ditolak',
+          icon: Icons.cancel_rounded
+        );
       case AttendanceStatus.izinCuti:
-        return (color: AppColors.info, label: 'Izin/Cuti', icon: Icons.event_busy);
+        return (
+          color: AppColors.info,
+          label: 'Izin/Cuti',
+          icon: Icons.event_busy_rounded
+        );
       case AttendanceStatus.alpa:
-        return (color: AppColors.textSecondary, label: 'Alpa', icon: Icons.remove_circle);
+        return (
+          color: AppColors.textSecondary,
+          label: 'Alpa',
+          icon: Icons.remove_circle_rounded
+        );
     }
   }
 

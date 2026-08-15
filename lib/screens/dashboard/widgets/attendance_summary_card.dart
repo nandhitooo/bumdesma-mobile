@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../models/attendance.dart';
+import '../../../widgets/section_card.dart';
 
 class AttendanceSummaryCard extends StatelessWidget {
   final DailyAttendance? record;
@@ -15,47 +16,23 @@ class AttendanceSummaryCard extends StatelessWidget {
   });
 
   String _fmtTime(DateTime? t) =>
-      t == null ? '--' : DateFormat('HH:mm').format(t);
+      t == null ? '--:--' : DateFormat('HH:mm').format(t);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.divider),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(18),
+    return SectionCard(
+      title: 'Hari Ini',
+      icon: Icons.today_rounded,
+      trailing: loading
+          ? const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: AppColors.primary),
+            )
+          : null,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.today_rounded,
-                  size: 18, color: AppColors.primary),
-              const SizedBox(width: 8),
-              const Text(
-                'Hari Ini',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-              ),
-              const Spacer(),
-              if (loading)
-                const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: AppColors.primary),
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
           _AttendanceRow(
             icon: Icons.login_rounded,
             iconColor: AppColors.success,

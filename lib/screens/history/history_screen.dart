@@ -6,9 +6,16 @@ import '../../core/theme/app_theme.dart';
 import '../../models/attendance.dart';
 import '../../services/attendance_service.dart';
 import '../../state/auth_provider.dart';
+import '../../widgets/gradient_app_header.dart';
+import '../../widgets/section_card.dart';
+import '../../widgets/status_badge.dart';
 
 /// Mirrors "Riwayat" screen (Gambar 3.35): daftar absensi per hari,
 /// dikelompokkan berdasarkan tanggal, dengan filter bulan.
+///
+/// Redesigned to use [GradientAppHeader] (month chip lives inside the
+/// header instead of floating awkwardly below it) and per-day
+/// [SectionCard]s that reuse [StatusBadge] for consistent status colors.
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
@@ -41,47 +48,81 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Riwayat')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: OutlinedButton.icon(
-                onPressed: _pickMonth,
-                icon: const Icon(Icons.calendar_month_rounded, size: 18),
-                label: Text(
-                  isCurrentMonth
-                      ? 'Bulan Ini'
-                      : DateFormat('MMMM yyyy', 'id_ID').format(_month),
-                ),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: Size.zero,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: GradientAppHeader(
+              title: 'Riwayat',
+              subtitle: 'Rekap kehadiran bulanan Anda',
+              bottom: InkWell(
+                onTap: _pickMonth,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.calendar_month_rounded,
+                          size: 16, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Text(
+                        isCurrentMonth
+                            ? 'Bulan Ini'
+                            : DateFormat('MMMM yyyy', 'id_ID').format(_month),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(Icons.keyboard_arrow_down_rounded,
+                          size: 18, color: Colors.white),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-          Expanded(
-            child: FutureBuilder<List<DailyAttendance>>(
-              future:
-                  AttendanceService.instance.getHistory(nip, month: _month),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+            sliver: FutureBuilder<List<DailyAttendance>>(
+              future: AttendanceService.instance.getHistory(nip, month: _month),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child:
+                          CircularProgressIndicator(color: AppColors.primary),
+                    ),
+                  );
                 }
                 final items = snapshot.data!.reversed.toList();
                 if (items.isEmpty) {
-                  return const Center(
-                    child: Text('Belum ada data absensi bulan ini.',
-                        style: TextStyle(color: AppColors.textSecondary)),
+                  return const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: EmptyState(
+                      icon: Icons.event_busy_rounded,
+                      title: 'Belum ada data absensi',
+                      message:
+                          'Riwayat kehadiran bulan ini akan muncul di sini.',
+                    ),
                   );
                 }
-                return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                  itemCount: items.length,
-                  itemBuilder: (context, i) => _DayGroup(record: items[i]),
+                return SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, i) => Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: _DayCard(record: items[i]),
+                    ),
+                    childCount: items.length,
+                  ),
                 );
               },
             ),
@@ -92,22 +133,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 }
 
-class _DayGroup extends StatelessWidget {
+class _DayCard extends StatelessWidget {
   final DailyAttendance record;
-  const _DayGroup({required this.record});
+  const _DayCard({required this.record});
 
   @override
   Widget build(BuildContext context) {
-    final dateLabel = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(record.date);
+    final dateLabel =
+        DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(record.date);
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
+    return SectionCard(
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(dateLabel,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-          const SizedBox(height: 8),
+              style:
+                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          const SizedBox(height: 12),
           _HistoryRow(
             icon: Icons.login_rounded,
             iconColor: AppColors.success,
@@ -115,7 +158,7 @@ class _DayGroup extends StatelessWidget {
             time: record.jamMasuk,
             status: record.statusMasuk,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           _HistoryRow(
             icon: Icons.logout_rounded,
             iconColor: AppColors.danger,
@@ -144,53 +187,51 @@ class _HistoryRow extends StatelessWidget {
     required this.status,
   });
 
-  ({Color color, String label}) get _statusSpec {
-    if (time == null) return (color: AppColors.textSecondary, label: 'Tidak Masuk');
-    switch (status) {
-      case AttendanceStatus.terlambat:
-        return (color: AppColors.warning, label: 'Terlambat');
-      case AttendanceStatus.lembur:
-        return (color: AppColors.warning, label: 'Lembur');
-      case AttendanceStatus.tepatWaktu:
-      case AttendanceStatus.diterima:
-        return (color: AppColors.success, label: 'Tepat Waktu');
-      default:
-        return (color: AppColors.textSecondary, label: '--');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final s = _statusSpec;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.divider),
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Row(
         children: [
           Container(
-            width: 38,
-            height: 38,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(color: iconColor, shape: BoxShape.circle),
             child: Icon(icon, color: Colors.white, size: 18),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+            child: Text(title,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
           ),
           Text(
-            time == null ? '--' : DateFormat('HH:mm').format(time!),
-            style: const TextStyle(fontSize: 13),
+            time == null ? '--:--' : DateFormat('HH:mm').format(time!),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
-          const SizedBox(width: 12),
-          Text(
-            s.label,
-            style: TextStyle(
-                color: s.color, fontSize: 12.5, fontWeight: FontWeight.w600),
-          ),
+          const SizedBox(width: 10),
+          if (status != null)
+            StatusBadge(status: status!)
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.textSecondary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'Tidak Masuk',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
         ],
       ),
     );
