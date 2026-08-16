@@ -49,6 +49,15 @@ class HttpSettingsService implements SettingsService {
     return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
   }
 
+  /// national_holidays now supports two shapes for backward compatibility:
+  ///   - Legacy: a plain date string, e.g. "2026-08-17"
+  ///   - Current: a range object, e.g.
+  ///     { "tanggal_mulai": "2026-04-08", "tanggal_selesai": "2026-04-15",
+  ///       "keterangan": "Cuti Bersama Lebaran" }
+  /// enabling multi-day holiday ranges (long holidays) set from the admin
+  /// website's Pengaturan page. Every calendar day within a range is
+  /// expanded into the returned list so callers (e.g. ScanSelectScreen's
+  /// eligibility check) can keep doing a simple day-equality lookup.
   @override
   Future<List<DateTime>> getNationalHolidays() async {
     final res = await _api.get('/settings');
@@ -61,6 +70,24 @@ class HttpSettingsService implements SettingsService {
     } else {
       list = (raw as List<dynamic>?) ?? [];
     }
-    return list.map((s) => DateTime.parse(s as String)).toList();
+
+    final result = <DateTime>[];
+    for (final item in list) {
+      if (item is String) {
+        result.add(DateTime.parse(item));
+      } else if (item is Map) {
+        final startStr = (item['tanggal_mulai'] ?? item['start']) as String?;
+        final endStr = (item['tanggal_selesai'] ?? item['end']) as String?;
+        if (startStr == null) continue;
+        final start = DateTime.parse(startStr);
+        final end = endStr != null ? DateTime.parse(endStr) : start;
+        for (var d = start;
+            !d.isAfter(end);
+            d = d.add(const Duration(days: 1))) {
+          result.add(d);
+        }
+      }
+    }
+    return result;
   }
 }
