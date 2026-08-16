@@ -28,6 +28,7 @@ class ScanSelectScreen extends StatefulWidget {
 class _ScanSelectScreenState extends State<ScanSelectScreen> {
   bool _loading = true;
   bool _allowedToday = true;
+  String _blockedReason = '';
 
   @override
   void initState() {
@@ -38,13 +39,31 @@ class _ScanSelectScreenState extends State<ScanSelectScreen> {
   Future<void> _checkEligibility() async {
     final nip = context.read<AuthProvider>().user?.nip ?? '';
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
 
-    if (now.weekday == DateTime.saturday) {
-      final assigned =
-          await SettingsService.instance.isAssignedSaturdayPiket(nip);
-      _allowedToday = assigned;
+    if (now.weekday == DateTime.sunday) {
+      _allowedToday = false;
+      _blockedReason =
+          'Hari ini hari Minggu, bukan hari kerja. Absensi tidak tersedia.';
     } else {
-      _allowedToday = true;
+      final holidays = await SettingsService.instance.getNationalHolidays();
+      final isHoliday = holidays.any(
+        (h) => DateTime(h.year, h.month, h.day) == today,
+      );
+
+      if (isHoliday) {
+        _allowedToday = false;
+        _blockedReason =
+            'Hari ini merupakan hari libur nasional/cuti bersama. Absensi tidak tersedia.';
+      } else if (now.weekday == DateTime.saturday) {
+        final assigned =
+            await SettingsService.instance.isAssignedSaturdayPiket(nip);
+        _allowedToday = assigned;
+        _blockedReason =
+            'Hari ini Sabtu dan Anda tidak terdaftar pada jadwal piket, sehingga absensi tidak tersedia.';
+      } else {
+        _allowedToday = true;
+      }
     }
 
     if (mounted) setState(() => _loading = false);
@@ -84,14 +103,13 @@ class _ScanSelectScreenState extends State<ScanSelectScreen> {
   }
 
   Widget _buildNotScheduled() {
-    return const Padding(
-      padding: EdgeInsets.all(32),
+    return Padding(
+      padding: const EdgeInsets.all(32),
       child: Center(
         child: EmptyState(
           icon: Icons.weekend_rounded,
-          title: 'Bukan Jadwal Piket Anda',
-          message:
-              'Hari ini Sabtu dan Anda tidak terdaftar pada jadwal piket, sehingga absensi tidak tersedia.',
+          title: 'Absensi Tidak Tersedia',
+          message: _blockedReason,
         ),
       ),
     );

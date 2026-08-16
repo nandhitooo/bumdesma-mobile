@@ -33,7 +33,8 @@ class HttpAuthService implements AuthService {
         departemen: user['departemen'] as String? ?? '-',
         email: email,
         mustChangePassword: data['mustChangePassword'] as bool? ?? false,
-        mustAddEmail: data['mustAddEmail'] as bool? ?? (email == null || email.isEmpty),
+        mustAddEmail:
+            data['mustAddEmail'] as bool? ?? (email == null || email.isEmpty),
       );
     } on ApiException catch (e) {
       throw AuthException(e.message);
@@ -66,6 +67,35 @@ class HttpAuthService implements AuthService {
   Future<void> updateEmail({required String nip, required String email}) async {
     try {
       await _api.post('/auth/email', body: {'email': email});
+    } on ApiException catch (e) {
+      throw AuthException(e.message);
+    }
+  }
+
+  @override
+  Future<void> forgotPassword(String nip) async {
+    try {
+      // Endpoint ini tidak butuh sesi login (belum ada Authorization
+      // token sama sekali di titik ini) - lihat auth.routes.js, rute ini
+      // sengaja tidak dipasangi middleware authenticate.
+      await _api.post('/auth/forgot-password', body: {'nip': nip});
+    } on ApiException catch (e) {
+      throw AuthException(e.message);
+    }
+  }
+
+  @override
+  Future<void> resetPassword({
+    required String nip,
+    required String otp,
+    required String newPassword,
+  }) async {
+    try {
+      await _api.post('/auth/reset-password', body: {
+        'nip': nip,
+        'otp': otp,
+        'newPassword': newPassword,
+      });
     } on ApiException catch (e) {
       throw AuthException(e.message);
     }

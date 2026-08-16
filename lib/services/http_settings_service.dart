@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
+import 'dart:convert';
 import '../core/network/api_client.dart';
 import '../models/work_schedule.dart';
 import 'settings_service.dart';
@@ -15,7 +15,8 @@ class HttpSettingsService implements SettingsService {
     final res = await _api.get('/settings');
     final data = res['data'] as Map<String, dynamic>;
     final settings = data['settings'] as Map<String, dynamic>;
-    final schedules = (data['workSchedules'] as List).cast<Map<String, dynamic>>();
+    final schedules =
+        (data['workSchedules'] as List).cast<Map<String, dynamic>>();
 
     final reguler = schedules.firstWhere(
       (s) => s['day_type'] == 'reguler',
@@ -46,5 +47,20 @@ class HttpSettingsService implements SettingsService {
   TimeOfDay _parseTime(String hhmmss) {
     final parts = hhmmss.split(':');
     return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+  }
+
+  @override
+  Future<List<DateTime>> getNationalHolidays() async {
+    final res = await _api.get('/settings');
+    final data = res['data'] as Map<String, dynamic>;
+    final settings = data['settings'] as Map<String, dynamic>;
+    final raw = settings['national_holidays'];
+    List<dynamic> list;
+    if (raw is String) {
+      list = raw.isEmpty ? [] : (jsonDecode(raw) as List<dynamic>);
+    } else {
+      list = (raw as List<dynamic>?) ?? [];
+    }
+    return list.map((s) => DateTime.parse(s as String)).toList();
   }
 }

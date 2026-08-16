@@ -10,8 +10,13 @@ class AuthException implements Exception {
 /// "Jika karyawan baru pertama kali login, sistem akan mewajibkan
 /// penggantian password sementara menjadi password baru."
 ///
+/// Also handles the "Lupa Password" flow for a karyawan who is not logged
+/// in at all: [forgotPassword] sends a 6-digit OTP to the account's
+/// recovery email, and [resetPassword] verifies that OTP and sets a new
+/// password.
+///
 /// Swap [AuthService.instance] for a real HTTP-backed implementation
-/// (using Env.apiBaseUrl) once the Node.js backend is available.
+/// once the Node.js backend is available.
 abstract class AuthService {
   static AuthService instance = MockAuthService();
 
@@ -31,6 +36,21 @@ abstract class AuthService {
   /// Dipakai oleh layar "Lengkapi Email" untuk karyawan lama yang sudah
   /// tidak lagi melewati layar ganti password tapi belum punya email.
   Future<void> updateEmail({required String nip, required String email});
+
+  /// Langkah 1 dari alur "Lupa Password" (dipanggil dari LoginScreen,
+  /// sebelum ada sesi login sama sekali). Mengirim kode OTP ke email
+  /// pemulihan yang tercatat untuk [nip]. Selalu "berhasil" walau NIP
+  /// tidak ditemukan atau belum punya email — backend sengaja tidak
+  /// membocorkan status akun demi keamanan.
+  Future<void> forgotPassword(String nip);
+
+  /// Langkah 2: memverifikasi [otp] yang dikirim ke email, lalu mengganti
+  /// password akun [nip] menjadi [newPassword].
+  Future<void> resetPassword({
+    required String nip,
+    required String otp,
+    required String newPassword,
+  });
 
   Future<void> logout();
 }
@@ -57,6 +77,9 @@ class MockAuthService implements AuthService {
       email: 'siti.aminah@example.com',
     ),
   };
+
+  // NIP -> OTP yang sedang aktif (mock, tanpa hashing/expiry sungguhan).
+  final Map<String, String> _otpByNip = {};
 
   @override
   Future<AppUser> login({
@@ -92,9 +115,11 @@ class MockAuthService implements AuthService {
 
     final profile = _profiles[nip];
     if (profile != null) {
-      final nextEmail = (email != null && email.isNotEmpty) ? email : profile.email;
+      final nextEmail =
+          (email != null && email.isNotEmpty) ? email : profile.email;
       if (nextEmail == null || nextEmail.isEmpty) {
-        throw AuthException('Email wajib diisi untuk keperluan pemulihan password.');
+        throw AuthException(
+            'Email wajib diisi untuk keperluan pemulihan password.');
       }
       _profiles[nip] = profile.copyWith(email: nextEmail);
     }
@@ -106,6 +131,37 @@ class MockAuthService implements AuthService {
     final profile = _profiles[nip];
     if (profile == null) throw AuthException('User tidak ditemukan.');
     _profiles[nip] = profile.copyWith(email: email);
+  }
+
+  @override
+  Future<void> forgotPassword(String nip) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    final profile = _profiles[nip];
+    // Meniru perilaku backend asli: tetap "berhasil" walau NIP tidak
+    // ditemukan atau belum punya email, supaya endpoint ini tidak bisa
+    // dipakai mengecek NIP mana yang terdaftar.
+    if (profile == null || profile.email == null || profile.email!.isEmpty) {
+      return;
+    }
+    // OTP tetap untuk kebutuhan mock/testing tanpa email sungguhan.
+    _otpByNip[nip] = '123456';
+  }
+
+  @override
+  Future<void> resetPassword({
+    required String nip,
+    required String otp,
+    required String newPassword,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    final expectedOtp = _otpByNip[nip];
+    if (expectedOtp == null || expectedOtp != otp) {
+      throw AuthException('Kode OTP tidak valid atau sudah kedaluwarsa.');
+    }
+    final cred = _db[nip];
+    if (cred == null) throw AuthException('User tidak ditemukan.');
+    _db[nip] = _Credential(password: newPassword, mustChange: false);
+    _otpByNip.remove(nip);
   }
 
   @override

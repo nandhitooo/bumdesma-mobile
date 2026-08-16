@@ -43,8 +43,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final nip = context.watch<AuthProvider>().user?.nip ?? '';
-    final isCurrentMonth = _month.year == DateTime.now().year &&
-        _month.month == DateTime.now().month;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -71,9 +69,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           size: 16, color: Colors.white),
                       const SizedBox(width: 8),
                       Text(
-                        isCurrentMonth
-                            ? 'Bulan Ini'
-                            : DateFormat('MMMM yyyy', 'id_ID').format(_month),
+                        DateFormat('MMMM yyyy', 'id_ID').format(_month),
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
@@ -147,9 +143,29 @@ class _DayCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(dateLabel,
-              style:
-                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          Row(
+            children: [
+              Expanded(
+                child: Text(dateLabel,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 13)),
+              ),
+              if (record.date.weekday == DateTime.saturday)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.info.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text('Piket',
+                      style: TextStyle(
+                          color: AppColors.info,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700)),
+                ),
+            ],
+          ),
           const SizedBox(height: 12),
           _HistoryRow(
             icon: Icons.login_rounded,

@@ -19,6 +19,7 @@ abstract class SettingsService {
   /// 3.2.7 point 2: if it's Saturday and the employee is NOT on the piket
   /// roster, the scan button must not be shown at all.
   Future<bool> isAssignedSaturdayPiket(String nip);
+  Future<List<DateTime>> getNationalHolidays();
 }
 
 class MockSettingsService implements SettingsService {
@@ -44,4 +45,7 @@ class MockSettingsService implements SettingsService {
     await Future.delayed(const Duration(milliseconds: 100));
     return _piketRoster.contains(nip);
   }
+
+  @override
+  Future<List<DateTime>> getNationalHolidays() async => [];
 }

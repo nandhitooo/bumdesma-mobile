@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../state/attendance_provider.dart';
 import '../../state/auth_provider.dart';
 import '../../state/notification_provider.dart';
+import '../../widgets/gradient_app_header.dart';
 import '../leave/leave_form_screen.dart';
 import '../notification/notification_panel.dart';
 import '../scan/scan_select_screen.dart';
@@ -131,147 +132,80 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildHeader(String nama, String jabatan, String nip, bool hasUnread) {
     final today =
         DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now());
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.primary, AppColors.primaryLight],
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(32),
-          bottomRight: Radius.circular(32),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x2616423C),
-            blurRadius: 20,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      // SafeArea (top only) memastikan konten tidak ketiban status bar /
-      // notch, sementara gradient di atas tetap full-bleed sampai ujung layar.
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 30),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.16),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.3),
-                          width: 1.4),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      nama.isNotEmpty ? nama[0].toUpperCase() : '?',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
+    final initial = nama.isNotEmpty ? nama[0].toUpperCase() : '?';
+
+    return GradientAppHeader(
+      title: '', // header body is fully custom below via `bottom`
+      padding: EdgeInsets.zero,
+      bottom: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 30),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                HeaderAvatar(initial: initial),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${_greeting()},',
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 12.5),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                      Text(
+                        nama.isEmpty ? '-' : nama,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (jabatan.isNotEmpty)
                         Text(
-                          '${_greeting()},',
+                          jabatan,
                           style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.8),
-                              fontSize: 12.5),
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: 12),
                         ),
-                        Text(
-                          nama.isEmpty ? '-' : nama,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 19,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        if (jabatan.isNotEmpty)
-                          Text(
-                            jabatan,
-                            style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.7),
-                                fontSize: 12),
-                          ),
-                      ],
-                    ),
+                    ],
                   ),
-                  InkWell(
-                    borderRadius: BorderRadius.circular(24),
-                    onTap: () => _openNotifications(nip),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.14),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.notifications_rounded,
-                              color: Colors.white, size: 22),
-                        ),
-                        if (hasUnread)
-                          Positioned(
-                            top: -1,
-                            right: -1,
-                            child: Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: AppColors.danger,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                    color: AppColors.primary, width: 2),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+                ),
+                HeaderIconButton(
+                  icon: Icons.notifications_rounded,
+                  showDot: hasUnread,
+                  onTap: () => _openNotifications(nip),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_today_rounded,
+                      size: 14, color: Colors.white.withValues(alpha: 0.85)),
+                  const SizedBox(width: 8),
+                  Text(
+                    today,
+                    style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 12.5),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.calendar_today_rounded,
-                        size: 14, color: Colors.white.withValues(alpha: 0.85)),
-                    const SizedBox(width: 8),
-                    Text(
-                      today,
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.9),
-                          fontSize: 12.5),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

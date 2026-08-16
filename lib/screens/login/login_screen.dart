@@ -5,6 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../../state/auth_provider.dart';
 import '../login/add_email_screen.dart';
 import '../login/change_password_screen.dart';
+import '../login/forgot_password_screen.dart';
 import '../../shell/main_shell.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -39,7 +40,8 @@ class _LoginScreenState extends State<LoginScreen> {
         // berikutnya, dan backend memang mewajibkan field ini.
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (_) => ChangePasswordScreen(temporaryPassword: typedPassword),
+            builder: (_) =>
+                ChangePasswordScreen(temporaryPassword: typedPassword),
           ),
         );
       } else if (auth.mustAddEmail) {
@@ -58,6 +60,12 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(content: Text(auth.error!)),
       );
     }
+  }
+
+  void _openForgotPassword() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+    );
   }
 
   @override
@@ -182,7 +190,22 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         onSubmitted: (_) => _submit(),
                       ),
-                      const SizedBox(height: 22),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: _openForgotPassword,
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(0, 0),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text(
+                            'Lupa Password?',
+                            style: TextStyle(fontSize: 12.5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
                       ElevatedButton(
                         onPressed: auth.loading ? null : _submit,
                         child: auth.loading
