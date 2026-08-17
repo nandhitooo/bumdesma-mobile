@@ -1,6 +1,6 @@
 enum LeaveStatus { menunggu, disetujui, ditolak }
 
-enum LeaveType { izin, cuti }
+enum LeaveType { izin, cuti, sakit }
 
 class LeaveRequest {
   final String id;

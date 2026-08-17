@@ -41,32 +41,37 @@ class _ScanSelectScreenState extends State<ScanSelectScreen> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    if (now.weekday == DateTime.sunday) {
-      _allowedToday = false;
-      _blockedReason =
-          'Hari ini hari Minggu, bukan hari kerja. Absensi tidak tersedia.';
-    } else {
-      final holidays = await SettingsService.instance.getNationalHolidays();
-      final isHoliday = holidays.any(
-        (h) => DateTime(h.year, h.month, h.day) == today,
-      );
-
-      if (isHoliday) {
+    try {
+      if (now.weekday == DateTime.sunday) {
         _allowedToday = false;
         _blockedReason =
-            'Hari ini merupakan hari libur nasional/cuti bersama. Absensi tidak tersedia.';
-      } else if (now.weekday == DateTime.saturday) {
-        final assigned =
-            await SettingsService.instance.isAssignedSaturdayPiket(nip);
-        _allowedToday = assigned;
-        _blockedReason =
-            'Hari ini Sabtu dan Anda tidak terdaftar pada jadwal piket, sehingga absensi tidak tersedia.';
+            'Hari ini hari Minggu, bukan hari kerja. Absensi tidak tersedia.';
       } else {
-        _allowedToday = true;
-      }
-    }
+        final holidays = await SettingsService.instance.getNationalHolidays();
+        final isHoliday = holidays.any(
+          (h) => DateTime(h.year, h.month, h.day) == today,
+        );
 
-    if (mounted) setState(() => _loading = false);
+        if (isHoliday) {
+          _allowedToday = false;
+          _blockedReason =
+              'Hari ini merupakan hari libur nasional/cuti bersama. Absensi tidak tersedia.';
+        } else if (now.weekday == DateTime.saturday) {
+          final assigned =
+              await SettingsService.instance.isAssignedSaturdayPiket(nip);
+          _allowedToday = assigned;
+          _blockedReason =
+              'Hari ini Sabtu dan Anda tidak terdaftar pada jadwal piket, sehingga absensi tidak tersedia.';
+        } else {
+          _allowedToday = true;
+        }
+      }
+    } catch (e) {
+      _allowedToday = false;
+      _blockedReason = 'Gagal memuat data. Periksa koneksi Anda dan coba lagi.';
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   void _openCamera(ScanType type) {

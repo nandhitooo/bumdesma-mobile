@@ -170,8 +170,9 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
                         initialValue: _type,
                         items: const [
                           DropdownMenuItem(
-                              value: LeaveType.izin,
-                              child: Text('Sakit / Izin')),
+                              value: LeaveType.sakit, child: Text('Sakit')),
+                          DropdownMenuItem(
+                              value: LeaveType.izin, child: Text('Izin')),
                           DropdownMenuItem(
                               value: LeaveType.cuti, child: Text('Cuti')),
                         ],
@@ -304,10 +305,42 @@ class _LeaveTile extends StatelessWidget {
     }
   }
 
+  IconData get _typeIcon {
+    switch (request.type) {
+      case LeaveType.cuti:
+        return Icons.beach_access_rounded;
+      case LeaveType.sakit:
+        return Icons.sick_outlined;
+      case LeaveType.izin:
+        return Icons.event_note_rounded;
+    }
+  }
+
+  Color get _typeColor {
+    switch (request.type) {
+      case LeaveType.cuti:
+        return AppColors.info;
+      case LeaveType.sakit:
+        return AppColors.danger;
+      case LeaveType.izin:
+        return AppColors.accent;
+    }
+  }
+
+  String get _typeLabel {
+    switch (request.type) {
+      case LeaveType.cuti:
+        return 'Cuti';
+      case LeaveType.sakit:
+        return 'Sakit';
+      case LeaveType.izin:
+        return 'Izin';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final fmt = DateFormat('dd MMM yyyy', 'id_ID');
-    final isCuti = request.type == LeaveType.cuti;
 
     return SectionCard(
       padding: const EdgeInsets.all(14),
@@ -317,15 +350,10 @@ class _LeaveTile extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: (isCuti ? AppColors.info : AppColors.accent)
-                  .withValues(alpha: 0.12),
+              color: _typeColor.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              isCuti ? Icons.beach_access_rounded : Icons.sick_outlined,
-              color: isCuti ? AppColors.info : AppColors.accent,
-              size: 20,
-            ),
+            child: Icon(_typeIcon, color: _typeColor, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -333,7 +361,7 @@ class _LeaveTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isCuti ? 'Cuti' : 'Sakit / Izin',
+                  _typeLabel,
                   style: const TextStyle(
                       fontWeight: FontWeight.w700, fontSize: 13.5),
                 ),

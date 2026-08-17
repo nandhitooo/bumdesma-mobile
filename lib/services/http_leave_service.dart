@@ -30,21 +30,52 @@ class HttpLeaveService implements LeaveService {
     String? attachmentPath,
   }) async {
     final fields = {
-      'jenis': type == LeaveType.cuti ? 'cuti' : 'izin',
+      'jenis': _typeToJson(type),
       'tanggal_mulai': _dateFmt.format(startDate),
       'tanggal_selesai': _dateFmt.format(endDate),
       'alasan': reason,
     };
 
-    // attachmentPath is the actual local filesystem path returned by
-    // file_picker (PlatformFile.path) — NOT just the bare filename. Using
-    // only the filename here previously meant File(...) pointed at a path
-    // that didn't exist, so the file silently never made it into the
-    // multipart request and file_lampiran stayed null on the backend.
     final file = attachmentPath != null ? File(attachmentPath) : null;
 
     final res = await _api.postMultipart('/leaves', fields: fields, file: file);
     return _fromJson(res['data'] as Map<String, dynamic>);
+  }
+
+  String _typeToJson(LeaveType type) {
+    switch (type) {
+      case LeaveType.cuti:
+        return 'cuti';
+      case LeaveType.sakit:
+        return 'sakit';
+      case LeaveType.izin:
+        return 'izin';
+    }
+  }
+
+  LeaveType _typeFromJson(String? jenis) {
+    switch (jenis) {
+      case 'cuti':
+        return LeaveType.cuti;
+      case 'sakit':
+        return LeaveType.sakit;
+      case 'izin':
+      default:
+        return LeaveType.izin;
+    }
+  }
+
+  LeaveRequest _fromJson(Map<String, dynamic> row) {
+    return LeaveRequest(
+      id: row['id'] as String,
+      type: _typeFromJson(row['jenis'] as String?),
+      startDate: DateTime.parse(row['tanggal_mulai'] as String).toLocal(),
+      endDate: DateTime.parse(row['tanggal_selesai'] as String).toLocal(),
+      reason: row['alasan'] as String,
+      attachmentFileName: row['file_lampiran'] as String?,
+      submittedAt: DateTime.parse(row['created_at'] as String).toLocal(),
+      status: _mapStatus(row['status'] as String?),
+    );
   }
 
   @override
@@ -61,20 +92,6 @@ class HttpLeaveService implements LeaveService {
       final end = DateTime(r.endDate.year, r.endDate.month, r.endDate.day);
       return !target.isBefore(start) && !target.isAfter(end);
     });
-  }
-
-  LeaveRequest _fromJson(Map<String, dynamic> row) {
-    return LeaveRequest(
-      id: row['id'] as String,
-      type:
-          (row['jenis'] as String) == 'cuti' ? LeaveType.cuti : LeaveType.izin,
-      startDate: DateTime.parse(row['tanggal_mulai'] as String).toLocal(),
-      endDate: DateTime.parse(row['tanggal_selesai'] as String).toLocal(),
-      reason: row['alasan'] as String,
-      attachmentFileName: row['file_lampiran'] as String?,
-      submittedAt: DateTime.parse(row['created_at'] as String).toLocal(),
-      status: _mapStatus(row['status'] as String?),
-    );
   }
 
   // status ('pending' | 'diteruskan' | 'approved' | 'rejected') -> LeaveStatus
