@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
+import 'package:device_preview/device_preview.dart';
 import 'core/env/env.dart';
 import 'core/theme/app_theme.dart';
 import 'screens/login/login_screen.dart';
@@ -21,27 +22,22 @@ import 'state/notification_provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Loads MAPS_API_ANDROID / MAPS_API_IOS / API_BASE_URL / geofencing
-  // defaults from the bundled .env (see pubspec.yaml assets).
   await Env.load();
-
-  // Enables 'id_ID' locale for all DateFormat calls used across the app
-  // (Riwayat, Dashboard, notification timestamps, scan result screens).
   await initializeDateFormatting('id_ID', null);
 
-  // Swap the mock services for the real Node.js/Express backend
-  // (bumdesma-backend). Comment these lines out to fall back to the
-  // in-memory mocks, e.g. for UI work with no backend running.
   AuthService.instance = HttpAuthService();
   AttendanceService.instance = HttpAttendanceService();
   LeaveService.instance = HttpLeaveService();
   SettingsService.instance = HttpSettingsService();
-  // NOTE: this was missing — NotificationService.instance was silently
-  // still pointing at MockNotificationService, so real piket/izin-cuti
-  // notifications from the backend never reached the Dashboard bell.
   NotificationService.instance = HttpNotificationService();
 
-  runApp(const AbsensiBumdesmaApp());
+  runApp(
+    DevicePreview(
+      // Set ke false kalau mau build rilis biasa tanpa frame device.
+      enabled: true,
+      builder: (context) => const AbsensiBumdesmaApp(),
+    ),
+  );
 }
 
 class AbsensiBumdesmaApp extends StatelessWidget {
@@ -59,6 +55,11 @@ class AbsensiBumdesmaApp extends StatelessWidget {
         title: 'BUMDESMA',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
+        // Wajib ditambahkan agar DevicePreview bisa mengatur ukuran layar,
+        // locale, dan builder-nya sendiri.
+        useInheritedMediaQuery: true,
+        locale: DevicePreview.locale(context),
+        builder: DevicePreview.appBuilder,
         home: const LoginScreen(),
       ),
     );

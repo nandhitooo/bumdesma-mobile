@@ -31,3 +31,8 @@ ios/Flutter/flutter_assets/
 .idea/
 .vscode/
 *.iml
+
+#Build outputs
+build/
+android/build/
+android/app/build/
