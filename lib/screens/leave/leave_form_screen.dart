@@ -60,8 +60,8 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
       type: FileType.custom,
       allowedExtensions: ['pdf', 'docx'],
     );
-    if (result != null && result.files.isNotEmpty) {
-      setState(() => _attachment = result.files.first);
+    if (result.isNotEmpty) {
+      setState(() => _attachment = result.first);
     }
   }
 
