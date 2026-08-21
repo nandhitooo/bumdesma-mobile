@@ -6,13 +6,6 @@ import '../../models/notification_item.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/section_card.dart';
 
-/// Pop-up shown when the employee taps the notification bell on Dashboard
-/// (Gambar 3.24): jadwal piket Sabtu yang di-assign Admin, dan status
-/// pengajuan Izin/Cuti.
-///
-/// Redesigned so unread items are visually highlighted (subtle tinted
-/// background + red dot) instead of every item looking identical, and the
-/// empty state now uses the shared [EmptyState] widget.
 Future<void> showNotificationPanel(BuildContext context, String nip) {
   return showModalBottomSheet(
     context: context,
@@ -43,55 +36,60 @@ class _NotificationSheetState extends State<_NotificationSheet> {
   @override
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.55,
-      minChildSize: 0.3,
-      maxChildSize: 0.85,
+      initialChildSize: 0.6,
+      minChildSize: 0.35,
+      maxChildSize: 0.88,
       expand: false,
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
             color: AppColors.surface,
-            borderRadius:
-                BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
           ),
           child: Column(
             children: [
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Container(
-                width: 40,
-                height: 4,
+                width: 44,
+                height: 4.5,
                 decoration: BoxDecoration(
-                  color: AppColors.divider,
-                  borderRadius: BorderRadius.circular(4),
+                  color: AppColors.cardBorder,
+                  borderRadius: BorderRadius.circular(3),
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
                 child: Row(
                   children: [
-                    Icon(Icons.notifications_rounded, color: AppColors.primary),
-                    SizedBox(width: 8),
-                    Text('Notifikasi', style: AppTextStyles.sectionTitle),
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: AppColors.primarySoft,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.notifications_rounded, color: AppColors.primary, size: 18),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text('Notifikasi & Informasi', style: AppTextStyles.sectionTitle),
                   ],
                 ),
               ),
-              const Divider(height: 1),
+              const Divider(height: 1, color: AppColors.cardBorder),
               Expanded(
                 child: FutureBuilder<List<AppNotification>>(
                   future: _future,
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) {
                       return const Center(
-                          child: CircularProgressIndicator(
-                              color: AppColors.primary));
+                        child: CircularProgressIndicator(color: AppColors.primary),
+                      );
                     }
                     final items = snapshot.data!;
                     if (items.isEmpty) {
                       return const EmptyState(
-                        icon: Icons.notifications_off_outlined,
-                        title: 'Belum ada notifikasi',
-                        message:
-                            'Info piket dan status izin/cuti akan muncul di sini.',
+                        icon: Icons.notifications_none_rounded,
+                        title: 'Belum Ada Notifikasi',
+                        message: 'Pemberitahuan jadwal piket dan status cuti akan muncul di sini.',
                       );
                     }
                     return ListView.builder(
@@ -121,24 +119,31 @@ class _NotificationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPiket = item.type == NotificationType.piket;
-    final color = isPiket ? AppColors.info : AppColors.success;
+    final color = isPiket ? AppColors.info : AppColors.accent;
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: item.read ? AppColors.surface : AppColors.surfaceAlt,
+        color: item.read ? AppColors.surface : AppColors.primarySoft.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.divider),
+        border: Border.all(
+          color: item.read ? AppColors.cardBorder : AppColors.accent.withValues(alpha: 0.3),
+          width: 1.1,
+        ),
+        boxShadow: AppShadows.soft,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            backgroundColor: color.withValues(alpha: 0.12),
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+            ),
             child: Icon(
-              isPiket
-                  ? Icons.event_available_rounded
-                  : Icons.description_rounded,
+              isPiket ? Icons.event_available_rounded : Icons.description_rounded,
               color: color,
               size: 20,
             ),
@@ -148,21 +153,25 @@ class _NotificationTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.title,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 13.5)),
+                Text(
+                  item.title,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: AppColors.textPrimary),
+                ),
                 const SizedBox(height: 3),
                 Text(
                   item.description,
-                  style: const TextStyle(
-                      fontSize: 12.5, color: AppColors.textSecondary),
+                  style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary, height: 1.35),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  DateFormat('d MMM yyyy, HH:mm', 'id_ID')
-                      .format(item.createdAt),
-                  style:
-                      const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                Row(
+                  children: [
+                    const Icon(Icons.access_time_rounded, size: 12, color: AppColors.textMuted),
+                    const SizedBox(width: 4),
+                    Text(
+                      DateFormat('d MMM yyyy, HH:mm', 'id_ID').format(item.createdAt),
+                      style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontWeight: FontWeight.w500),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -173,7 +182,9 @@ class _NotificationTile extends StatelessWidget {
               width: 8,
               height: 8,
               decoration: const BoxDecoration(
-                  color: AppColors.danger, shape: BoxShape.circle),
+                color: AppColors.danger,
+                shape: BoxShape.circle,
+              ),
             ),
         ],
       ),

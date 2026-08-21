@@ -24,9 +24,9 @@ class ApiException implements Exception {
 /// Talks to the bumdesma-backend REST API (Express + PostgreSQL).
 ///
 /// Base URL comes from `.env` -> API_BASE_URL (see core/env/env.dart).
-/// - Android emulator reaching a backend on your machine: http://10.0.2.2:5000
-/// - iOS simulator: http://localhost:5000
-/// - Physical device on the same Wi-Fi: http://<ip-lan-komputer>:5000
+/// - Android emulator reaching a backend on your machine: `http://10.0.2.2:5000`
+/// - iOS simulator: `http://localhost:5000`
+/// - Physical device on the same Wi-Fi: `http://[ip-lan-komputer]:5000`
 ///
 /// Every call automatically attaches `Authorization: Bearer <accessToken>`
 /// once a session exists, and transparently retries once via

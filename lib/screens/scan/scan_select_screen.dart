@@ -3,21 +3,13 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../models/attendance.dart';
+import '../../models/work_schedule.dart';
 import '../../services/settings_service.dart';
 import '../../state/auth_provider.dart';
 import '../../widgets/gradient_app_header.dart';
 import '../../widgets/section_card.dart';
 import 'scan_camera_screen.dart';
 
-/// Mirrors "Halaman Pilih Jenis Absen" (Gambar 3.26): karyawan memilih
-/// Absen Masuk atau Absen Pulang sebelum kamera QR dibuka.
-///
-/// Per Sub Bab 3.2.7 point 2: jika hari ini Sabtu dan karyawan TIDAK
-/// terjadwal piket, tombol absen disembunyikan sepenuhnya.
-///
-/// Redesigned to use [GradientAppHeader] instead of the plain green
-/// AppBar (for consistency with the rest of the app) and richer option
-/// cards with a short description under each label.
 class ScanSelectScreen extends StatefulWidget {
   const ScanSelectScreen({super.key});
 
@@ -29,6 +21,7 @@ class _ScanSelectScreenState extends State<ScanSelectScreen> {
   bool _loading = true;
   bool _allowedToday = true;
   String _blockedReason = '';
+  WorkSchedule? _schedule;
 
   @override
   void initState() {
@@ -42,6 +35,11 @@ class _ScanSelectScreenState extends State<ScanSelectScreen> {
     final today = DateTime(now.year, now.month, now.day);
 
     try {
+      // Diambil bersamaan dengan pengecekan kelayakan supaya jam kerja &
+      // radius yang ditampilkan di layar ini selalu mengikuti pengaturan
+      // Admin di backend, bukan nilai statis.
+      _schedule = await SettingsService.instance.getWorkSchedule();
+
       if (now.weekday == DateTime.sunday) {
         _allowedToday = false;
         _blockedReason =
@@ -87,8 +85,8 @@ class _ScanSelectScreenState extends State<ScanSelectScreen> {
       body: Column(
         children: [
           GradientAppHeader(
-            title: 'Absen Dulu',
-            subtitle: 'Pilih jenis absensi yang ingin dilakukan',
+            title: 'Scan QR Presensi',
+            subtitle: 'Pilih jenis absensi yang ingin dilakukan hari ini',
             leading: HeaderIconButton(
               icon: Icons.arrow_back_rounded,
               onTap: () => Navigator.of(context).maybePop(),
@@ -121,23 +119,90 @@ class _ScanSelectScreenState extends State<ScanSelectScreen> {
   }
 
   Widget _buildOptions() {
+    final masukLabel = _schedule != null
+        ? 'Jadwal ${_schedule!.jamMasukLabel} WIB'
+        : 'Jadwal Masuk';
+    final pulangLabel = _schedule != null
+        ? 'Jadwal ${_schedule!.jamPulangLabel} WIB'
+        : 'Jadwal Pulang';
+    final radiusLabel =
+        _schedule != null ? '${_schedule!.radiusMeters.round()}m' : '50m';
+
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
       children: [
         _ScanOptionCard(
           label: 'Absen Masuk',
-          description: 'Catat kehadiran Anda saat tiba di kantor',
+          description: 'Catat waktu kedatangan Anda saat tiba di kantor',
+          badgeText: masukLabel,
           icon: Icons.login_rounded,
-          color: AppColors.success,
+          gradient: AppColors.emeraldGradient,
+          badgeColor: AppColors.success,
           onTap: () => _openCamera(ScanType.masuk),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
         _ScanOptionCard(
           label: 'Absen Pulang',
-          description: 'Catat waktu Anda pulang dari kantor',
+          description: 'Catat waktu kepulangan setelah jam kerja selesai',
+          badgeText: pulangLabel,
           icon: Icons.logout_rounded,
-          color: AppColors.danger,
+          gradient: AppColors.amberGradient,
+          badgeColor: AppColors.warning,
           onTap: () => _openCamera(ScanType.pulang),
+        ),
+        const SizedBox(height: 24),
+        // GPS & Guidance Banner
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.primarySoft,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.accent.withValues(alpha: 0.25)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: AppColors.accent.withValues(alpha: 0.3)),
+                ),
+                child: const Icon(
+                  Icons.my_location_rounded,
+                  color: AppColors.accent,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Validasi Lokasi GPS Aktif',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Pastikan Anda berada di area kantor (radius < $radiusLabel) saat melakukan scanning QR Code.',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -147,60 +212,140 @@ class _ScanSelectScreenState extends State<ScanSelectScreen> {
 class _ScanOptionCard extends StatelessWidget {
   final String label;
   final String description;
+  final String badgeText;
   final IconData icon;
-  final Color color;
+  final List<Color> gradient;
+  final Color badgeColor;
   final VoidCallback onTap;
 
   const _ScanOptionCard({
     required this.label,
     required this.description,
+    required this.badgeText,
     required this.icon,
-    required this.color,
+    required this.gradient,
+    required this.badgeColor,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      onTap: onTap,
-      child: SectionCard(
-        child: Row(
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [color, color.withValues(alpha: 0.75)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                      color: color.withValues(alpha: 0.35),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4)),
-                ],
-              ),
-              child: Icon(icon, color: Colors.white, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    final primaryColor = gradient.first;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+            border: Border.all(color: AppColors.cardBorder, width: 1.2),
+            boxShadow: AppShadows.medium,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Text(label,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 3),
-                  Text(description, style: AppTextStyles.caption),
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: gradient,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: primaryColor.withValues(alpha: 0.35),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Icon(icon, color: Colors.white, size: 24),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              label,
+                              style: const TextStyle(
+                                fontSize: 16.5,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: badgeColor.withValues(alpha: 0.12),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.round),
+                              ),
+                              child: Text(
+                                badgeText,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: badgeColor,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          description,
+                          style: AppTextStyles.caption.copyWith(fontSize: 12.5),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-            ),
-            const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
-          ],
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceAlt,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Buka Kamera Pemindai',
+                      style: TextStyle(
+                        color: primaryColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      color: primaryColor,
+                      size: 16,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

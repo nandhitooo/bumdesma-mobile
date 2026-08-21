@@ -10,12 +10,6 @@ import '../../state/auth_provider.dart';
 import '../../widgets/gradient_app_header.dart';
 import '../../widgets/section_card.dart';
 
-/// Mirrors "Ajukan Izin & Cuti" (Gambar 3.25): tanggal, jenis (Izin/Cuti),
-/// alasan, dan lampiran file .pdf/.docx (mis. surat dokter).
-///
-/// Redesigned to use [GradientAppHeader] and to group the form and
-/// history list into distinct [SectionCard]s with clearer type icons
-/// (Cuti vs Sakit/Izin) instead of a flat, undifferentiated list.
 class LeaveFormScreen extends StatefulWidget {
   const LeaveFormScreen({super.key});
 
@@ -46,6 +40,19 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
       initialDateRange: _startDate != null && _endDate != null
           ? DateTimeRange(start: _startDate!, end: _endDate!)
           : null,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              surface: AppColors.surface,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (range != null) {
       setState(() {
@@ -65,13 +72,18 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
     }
   }
 
+  int get _daysCount {
+    if (_startDate == null || _endDate == null) return 0;
+    return _endDate!.difference(_startDate!).inDays + 1;
+  }
+
   Future<void> _submit() async {
     if (_startDate == null || _endDate == null) {
       _showError('Silakan pilih tanggal izin/cuti.');
       return;
     }
     if (_reasonController.text.trim().isEmpty) {
-      _showError('Alasan wajib diisi.');
+      _showError('Alasan pengajuan wajib diisi.');
       return;
     }
 
@@ -85,16 +97,13 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
         startDate: _startDate!,
         endDate: _endDate!,
         reason: _reasonController.text.trim(),
-        // IMPORTANT: pass the actual local file path (PlatformFile.path),
-        // not PlatformFile.name — using only the bare filename here would
-        // mean HttpLeaveService tries to open a path that doesn't exist,
-        // so the attachment silently never reaches the backend.
         attachmentPath: _attachment?.path,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Pengajuan berhasil dikirim, menunggu persetujuan.')),
+          content: Text('Pengajuan berhasil dikirim, menunggu persetujuan Admin/Atasan.'),
+        ),
       );
       setState(() {
         _startDate = null;
@@ -103,8 +112,6 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
         _reasonController.clear();
       });
     } on ApiException catch (e) {
-      // Surface the backend's actual reason instead of masking every
-      // failure behind the same generic message.
       _showError(e.message);
     } catch (e) {
       _showError('Gagal mengirim pengajuan: ${e.toString()}');
@@ -118,10 +125,10 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
   }
 
   String _dateLabel() {
-    if (_startDate == null || _endDate == null) return 'Pilih tanggal';
-    final fmt = DateFormat('dd MMM yyyy', 'id_ID');
+    if (_startDate == null || _endDate == null) return 'Pilih Rentang Tanggal';
+    final fmt = DateFormat('d MMM yyyy', 'id_ID');
     if (_startDate == _endDate) return fmt.format(_startDate!);
-    return '${fmt.format(_startDate!)}  —  ${fmt.format(_endDate!)}';
+    return '${fmt.format(_startDate!)} — ${fmt.format(_endDate!)}';
   }
 
   @override
@@ -132,109 +139,242 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
         slivers: [
           const SliverToBoxAdapter(
             child: GradientAppHeader(
-              title: 'Izin & Cuti',
-              subtitle: 'Ajukan izin, sakit, atau cuti di sini',
+              title: 'Pengajuan Izin & Cuti',
+              subtitle: 'Formulir permohonan izin sakit, keperluan, atau cuti kerja',
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 SectionCard(
-                  title: 'Formulir Pengajuan',
-                  icon: Icons.edit_calendar_outlined,
+                  title: 'Formulir Permohonan',
+                  icon: Icons.edit_note_rounded,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Tanggal',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 13)),
+                      // Type Selector Cards
+                      const Text(
+                        'Pilih Jenis Pengajuan',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          _typeOption(LeaveType.izin, 'Izin', Icons.event_note_rounded, AppColors.accent),
+                          const SizedBox(width: 8),
+                          _typeOption(LeaveType.sakit, 'Sakit', Icons.sick_outlined, AppColors.danger),
+                          const SizedBox(width: 8),
+                          _typeOption(LeaveType.cuti, 'Cuti', Icons.beach_access_rounded, AppColors.info),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Date Range Picker
+                      const Text(
+                        'Tanggal Berhalangan',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                      ),
                       const SizedBox(height: 8),
-                      InkWell(
-                        onTap: _pickDateRange,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            suffixIcon: Icon(Icons.calendar_today_rounded,
-                                color: AppColors.primary, size: 20),
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: _pickDateRange,
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                              border: Border.all(
+                                color: _startDate != null ? AppColors.primary : AppColors.cardBorder,
+                                width: _startDate != null ? 1.4 : 1.1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primarySoft,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.primary),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    _dateLabel(),
+                                    style: TextStyle(
+                                      color: _startDate != null ? AppColors.textPrimary : AppColors.textMuted,
+                                      fontSize: 13.5,
+                                      fontWeight: _startDate != null ? FontWeight.w600 : FontWeight.w400,
+                                    ),
+                                  ),
+                                ),
+                                if (_daysCount > 0)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primarySoft,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      '$_daysCount Hari',
+                                      style: const TextStyle(
+                                        color: AppColors.primary,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
-                          child: Text(_dateLabel()),
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      const Text('Jenis',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 13)),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<LeaveType>(
-                        initialValue: _type,
-                        items: const [
-                          DropdownMenuItem(
-                              value: LeaveType.sakit, child: Text('Sakit')),
-                          DropdownMenuItem(
-                              value: LeaveType.izin, child: Text('Izin')),
-                          DropdownMenuItem(
-                              value: LeaveType.cuti, child: Text('Cuti')),
-                        ],
-                        onChanged: (v) => setState(() => _type = v ?? _type),
+                      const SizedBox(height: 18),
+
+                      // Reason Field
+                      const Text(
+                        'Alasan Pengajuan',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                       ),
-                      const SizedBox(height: 16),
-                      const Text('Alasan',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 13)),
                       const SizedBox(height: 8),
                       TextField(
                         controller: _reasonController,
                         maxLines: 3,
                         decoration: const InputDecoration(
-                            hintText: 'Jelaskan alasan Anda'),
+                          hintText: 'Tuliskan alasan pengajuan secara jelas...',
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      const Text('Lampiran',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 13)),
+                      const SizedBox(height: 18),
+
+                      // Attachment Card
+                      const Text(
+                        'Lampiran Dokumen (Opsional / Surat Dokter)',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                      ),
                       const SizedBox(height: 8),
-                      InkWell(
-                        onTap: _pickAttachment,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            suffixIcon: Icon(Icons.attach_file_rounded,
-                                color: AppColors.primary, size: 20),
+                      if (_attachment == null)
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _pickAttachment,
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceAlt,
+                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                border: Border.all(color: AppColors.cardBorder, width: 1.1),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.upload_file_rounded, color: AppColors.primary, size: 20),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      'Unggah file .pdf atau .docx',
+                                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                    ),
+                                  ),
+                                  Icon(Icons.add_rounded, color: AppColors.primary, size: 20),
+                                ],
+                              ),
+                            ),
                           ),
-                          child: Text(
-                            _attachment?.name ?? 'Pilih file .pdf atau .docx',
-                            style: TextStyle(
-                              color: _attachment == null
-                                  ? AppColors.textMuted
-                                  : AppColors.textPrimary,
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.successSurface,
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            border: Border.all(color: AppColors.successBorder),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.description_rounded, color: AppColors.success, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _attachment!.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.danger),
+                                onPressed: () => setState(() => _attachment = null),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 22),
+
+                      // Submit Button
+                      Container(
+                        height: 52,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: AppColors.emeraldGradient,
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.accent.withValues(alpha: 0.35),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            onTap: _submitting ? null : _submit,
+                            child: Center(
+                              child: _submitting
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.4,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Kirim Pengajuan',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.1,
+                                      ),
+                                    ),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 22),
-                      ElevatedButton(
-                        onPressed: _submitting ? null : _submit,
-                        child: _submitting
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2.4, color: Colors.white),
-                              )
-                            : const Text('Ajukan Sekarang'),
-                      ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 const Row(
                   children: [
-                    Icon(Icons.history_rounded,
-                        size: 18, color: AppColors.primary),
+                    Icon(Icons.history_rounded, size: 18, color: AppColors.primary),
                     SizedBox(width: 8),
-                    Text('Riwayat Pengajuan',
-                        style: AppTextStyles.sectionTitle),
+                    Text('Riwayat Pengajuan Anda', style: AppTextStyles.sectionTitle),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -247,6 +387,45 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
     );
   }
 
+  Widget _typeOption(LeaveType type, String label, IconData icon, Color color) {
+    final selected = _type == type;
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          onTap: () => setState(() => _type = type),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: selected ? color.withValues(alpha: 0.12) : AppColors.surfaceAlt,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(
+                color: selected ? color : AppColors.cardBorder,
+                width: selected ? 1.6 : 1.1,
+              ),
+            ),
+            child: Column(
+              children: [
+                Icon(icon, color: selected ? color : AppColors.textSecondary, size: 22),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                    color: selected ? color : AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildHistoryList() {
     final nip = context.watch<AuthProvider>().user?.nip ?? '';
     return FutureBuilder<List<LeaveRequest>>(
@@ -254,24 +433,28 @@ class _LeaveFormScreenState extends State<LeaveFormScreen> {
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: LinearProgressIndicator(color: AppColors.primary),
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
           );
         }
         final items = snapshot.data!;
         if (items.isEmpty) {
           return const EmptyState(
             icon: Icons.inbox_outlined,
-            title: 'Belum ada pengajuan',
-            message: 'Pengajuan izin/cuti Anda akan tampil di sini.',
+            title: 'Belum Ada Pengajuan',
+            message: 'Semua permohonan izin/cuti yang Anda kirim akan muncul di sini.',
           );
         }
         return Column(
           children: items
-              .map((r) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _LeaveTile(request: r),
-                  ))
+              .map(
+                (r) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _LeaveTile(request: r),
+                ),
+              )
               .toList(),
         );
       },
@@ -291,6 +474,28 @@ class _LeaveTile extends StatelessWidget {
         return AppColors.danger;
       case LeaveStatus.menunggu:
         return AppColors.warning;
+    }
+  }
+
+  Color get _statusSurface {
+    switch (request.status) {
+      case LeaveStatus.disetujui:
+        return AppColors.successSurface;
+      case LeaveStatus.ditolak:
+        return AppColors.dangerSurface;
+      case LeaveStatus.menunggu:
+        return AppColors.warningSurface;
+    }
+  }
+
+  Color get _statusBorder {
+    switch (request.status) {
+      case LeaveStatus.disetujui:
+        return AppColors.successBorder;
+      case LeaveStatus.ditolak:
+        return AppColors.dangerBorder;
+      case LeaveStatus.menunggu:
+        return AppColors.warningBorder;
     }
   }
 
@@ -340,17 +545,17 @@ class _LeaveTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = DateFormat('dd MMM yyyy', 'id_ID');
+    final fmt = DateFormat('d MMM yyyy', 'id_ID');
 
     return SectionCard(
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color: _typeColor.withValues(alpha: 0.12),
+              color: _typeColor.withValues(alpha: 0.14),
               shape: BoxShape.circle,
             ),
             child: Icon(_typeIcon, color: _typeColor, size: 20),
@@ -363,29 +568,49 @@ class _LeaveTile extends StatelessWidget {
                 Text(
                   _typeLabel,
                   style: const TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 13.5),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '${fmt.format(request.startDate)} — ${fmt.format(request.endDate)}',
                   style: const TextStyle(
-                      fontSize: 12, color: AppColors.textSecondary),
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
+                if (request.reason.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    request.reason,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: _statusColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(20),
+              color: _statusSurface,
+              borderRadius: BorderRadius.circular(AppRadius.round),
+              border: Border.all(color: _statusBorder),
             ),
             child: Text(
               _statusLabel,
               style: TextStyle(
-                  color: _statusColor,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600),
+                color: _statusColor,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],

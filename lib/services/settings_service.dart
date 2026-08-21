@@ -37,6 +37,8 @@ class MockSettingsService implements SettingsService {
       officeLatitude: Env.officeLatitude,
       officeLongitude: Env.officeLongitude,
       radiusMeters: Env.officeRadiusMeters,
+      sabtuJamMasuk: const TimeOfDay(hour: 9, minute: 0),
+      sabtuJamPulang: const TimeOfDay(hour: 12, minute: 0),
     );
   }
 

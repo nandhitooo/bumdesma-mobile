@@ -4,21 +4,10 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../state/auth_provider.dart';
 import '../../shell/main_shell.dart';
+import '../../widgets/gradient_app_header.dart';
 
-/// Shown after first login using the temporary password given by Admin
-/// (isVoluntary=false, wajib — per Flow Karyawan Gambar 3.11), atau saat
-/// karyawan mengganti password sendiri lewat Profile (isVoluntary=true).
-///
-/// Email pemulihan WAJIB terisi:
-/// - Selalu wajib di layar ini pada login pertama.
-/// - Wajib juga pada penggantian password sukarela jika akun belum
-///   memiliki email tercatat sama sekali (lihat AuthProvider.mustAddEmail).
 class ChangePasswordScreen extends StatefulWidget {
   final bool isVoluntary; // true when opened from Profile, not forced
-  /// Password yang baru saja dipakai untuk login (diteruskan dari
-  /// LoginScreen), dipakai otomatis sebagai "password lama" pada alur
-  /// wajib ganti password login pertama — karyawan tidak perlu mengetik
-  /// ulang. Tidak dipakai kalau [isVoluntary] true.
   final String? temporaryPassword;
 
   const ChangePasswordScreen({
@@ -36,7 +25,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _newPasswordController = TextEditingController();
   final _confirmController = TextEditingController();
   late final TextEditingController _emailController;
-  bool _obscure = true;
+  bool _obscureOld = true;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
 
   static final _emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 
@@ -56,8 +47,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     super.dispose();
   }
 
-  /// Login pertama: email selalu wajib. Penggantian sukarela: wajib hanya
-  /// kalau akun ini memang belum punya email tercatat sama sekali.
   bool get _emailRequired {
     if (!widget.isVoluntary) return true;
     return context.read<AuthProvider>().mustAddEmail;
@@ -69,15 +58,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final email = _emailController.text.trim();
 
     if (newPass.length < 8) {
-      _showError('Password baru minimal 8 karakter.');
+      _showError('Kata sandi baru minimal 8 karakter.');
       return;
     }
     if (newPass != confirm) {
-      _showError('Konfirmasi password tidak cocok.');
+      _showError('Konfirmasi kata sandi tidak cocok.');
       return;
     }
     if (_emailRequired && email.isEmpty) {
-      _showError('Email wajib diisi untuk keperluan pemulihan password.');
+      _showError('Email pemulihan wajib diisi.');
       return;
     }
     if (email.isNotEmpty && !_emailRegex.hasMatch(email)) {
@@ -89,7 +78,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         ? _oldPasswordController.text
         : (widget.temporaryPassword ?? '');
     if (oldPassword.isEmpty) {
-      _showError('Password saat ini wajib diisi.');
+      _showError('Kata sandi saat ini wajib diisi.');
       return;
     }
 
@@ -105,7 +94,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       if (widget.isVoluntary) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password berhasil diperbarui.')),
+          const SnackBar(content: Text('Kata sandi berhasil diperbarui.')),
         );
       } else {
         Navigator.of(context).pushReplacement(
@@ -127,94 +116,146 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final emailRequired = _emailRequired;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ganti Password'),
-        automaticallyImplyLeading: widget.isVoluntary,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (!widget.isVoluntary) ...[
-              const Icon(Icons.password_rounded,
-                  size: 48, color: AppColors.primary),
-              const SizedBox(height: 12),
-              const Text(
-                'Amankan Akun Anda',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Ini adalah login pertama Anda. Silakan ganti password sementara dengan password baru, dan lengkapi email pemulihan sebelum melanjutkan.',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 24),
-            ],
-            if (widget.isVoluntary) ...[
-              TextField(
-                controller: _oldPasswordController,
-                obscureText: _obscure,
-                decoration: const InputDecoration(
-                  labelText: 'Password Saat Ini',
-                  prefixIcon: Icon(Icons.lock_person_outlined),
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          GradientAppHeader(
+            title: widget.isVoluntary ? 'Ubah Kata Sandi' : 'Aktivasi Sandi Baru',
+            subtitle: widget.isVoluntary
+                ? 'Perbarui kata sandi akun presensi Anda'
+                : 'Langkah pengamanan akun pada login pertama',
+            leading: widget.isVoluntary
+                ? HeaderIconButton(
+                    icon: Icons.arrow_back_rounded,
+                    onTap: () => Navigator.of(context).maybePop(),
+                  )
+                : null,
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+              child: Container(
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                  border: Border.all(color: AppColors.cardBorder, width: 1.1),
+                  boxShadow: AppShadows.soft,
                 ),
-              ),
-              const SizedBox(height: 14),
-            ],
-            TextField(
-              controller: _newPasswordController,
-              obscureText: _obscure,
-              decoration: InputDecoration(
-                labelText: 'Password Baru',
-                prefixIcon: const Icon(Icons.lock_outline),
-                suffixIcon: IconButton(
-                  icon: Icon(_obscure
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined),
-                  onPressed: () => setState(() => _obscure = !_obscure),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: _confirmController,
-              obscureText: _obscure,
-              decoration: const InputDecoration(
-                labelText: 'Konfirmasi Password Baru',
-                prefixIcon: Icon(Icons.lock_outline),
-              ),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                labelText: emailRequired ? 'Email Pemulihan *' : 'Email Pemulihan',
-                hintText: 'nama@email.com',
-                prefixIcon: const Icon(Icons.email_outlined),
-                helperText:
-                    'Dipakai untuk verifikasi jika suatu saat Anda lupa password.',
-                helperMaxLines: 2,
-              ),
-              onSubmitted: (_) => _submit(),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: auth.loading ? null : _submit,
-              child: auth.loading
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.4,
-                        color: Colors.white,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (!widget.isVoluntary) ...[
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.primarySoft,
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          border: Border.all(color: AppColors.accent.withValues(alpha: 0.25)),
+                        ),
+                        child: const Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.shield_rounded, color: AppColors.accent, size: 20),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Ini adalah login pertama Anda. Silakan ganti password sementara demi keamanan akun.',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: AppColors.primary,
+                                  height: 1.35,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    )
-                  : const Text('Simpan'),
+                      const SizedBox(height: 18),
+                    ],
+                    if (widget.isVoluntary) ...[
+                      TextField(
+                        controller: _oldPasswordController,
+                        obscureText: _obscureOld,
+                        decoration: InputDecoration(
+                          labelText: 'Kata Sandi Saat Ini',
+                          prefixIcon: const Icon(Icons.lock_person_outlined, color: AppColors.primary),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureOld ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                              color: AppColors.textSecondary,
+                            ),
+                            onPressed: () => setState(() => _obscureOld = !_obscureOld),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+                    TextField(
+                      controller: _newPasswordController,
+                      obscureText: _obscureNew,
+                      decoration: InputDecoration(
+                        labelText: 'Kata Sandi Baru (Min. 8 Karakter)',
+                        prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.primary),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureNew ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                            color: AppColors.textSecondary,
+                          ),
+                          onPressed: () => setState(() => _obscureNew = !_obscureNew),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: _confirmController,
+                      obscureText: _obscureConfirm,
+                      decoration: InputDecoration(
+                        labelText: 'Konfirmasi Kata Sandi Baru',
+                        prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.primary),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                            color: AppColors.textSecondary,
+                          ),
+                          onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: emailRequired ? 'Email Pemulihan *' : 'Email Pemulihan',
+                        hintText: 'nama@email.com',
+                        prefixIcon: const Icon(Icons.email_outlined, color: AppColors.primary),
+                        helperText: 'Digunakan untuk verifikasi OTP saat lupa password.',
+                        helperMaxLines: 2,
+                      ),
+                      onSubmitted: (_) => _submit(),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: auth.loading ? null : _submit,
+                      child: auth.loading
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.4,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Simpan Perubahan'),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

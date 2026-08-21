@@ -22,6 +22,12 @@ class HttpSettingsService implements SettingsService {
       (s) => s['day_type'] == 'reguler',
       orElse: () => schedules.first,
     );
+    // Jadwal Sabtu opsional — Admin bisa saja belum mengaktifkannya
+    // (is_active=false) atau baris day_type='sabtu' belum tersedia.
+    final sabtu = schedules.firstWhere(
+      (s) => s['day_type'] == 'sabtu',
+      orElse: () => const <String, dynamic>{},
+    );
 
     return WorkSchedule(
       jamMasuk: _parseTime(reguler['start_time'] as String),
@@ -32,6 +38,12 @@ class HttpSettingsService implements SettingsService {
       radiusMeters: double.parse(
         (settings['geofence_radius_meters'] ?? 50).toString(),
       ),
+      sabtuJamMasuk: sabtu['start_time'] != null
+          ? _parseTime(sabtu['start_time'] as String)
+          : null,
+      sabtuJamPulang: sabtu['end_time'] != null
+          ? _parseTime(sabtu['end_time'] as String)
+          : null,
     );
   }
 

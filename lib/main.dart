@@ -18,6 +18,7 @@ import 'services/settings_service.dart';
 import 'state/attendance_provider.dart';
 import 'state/auth_provider.dart';
 import 'state/notification_provider.dart';
+import 'state/settings_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,6 +51,7 @@ class AbsensiBumdesmaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => AttendanceProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
       child: MaterialApp(
         title: 'BUMDESMA',

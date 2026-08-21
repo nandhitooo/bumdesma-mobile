@@ -24,6 +24,7 @@ class DailyAttendance {
   final AttendanceStatus? statusMasuk;
   final AttendanceStatus? statusPulang;
   final int? lemburMenit;
+  final int? terlambatMenit;
 
   const DailyAttendance({
     required this.date,
@@ -32,6 +33,7 @@ class DailyAttendance {
     this.statusMasuk,
     this.statusPulang,
     this.lemburMenit,
+    this.terlambatMenit,
   });
 
   bool get sudahAbsenMasuk => jamMasuk != null;
@@ -44,6 +46,7 @@ class DailyAttendance {
     AttendanceStatus? statusMasuk,
     AttendanceStatus? statusPulang,
     int? lemburMenit,
+    int? terlambatMenit,
   }) {
     return DailyAttendance(
       date: date,
@@ -52,6 +55,7 @@ class DailyAttendance {
       statusMasuk: statusMasuk ?? this.statusMasuk,
       statusPulang: statusPulang ?? this.statusPulang,
       lemburMenit: lemburMenit ?? this.lemburMenit,
+      terlambatMenit: terlambatMenit ?? this.terlambatMenit,
     );
   }
 }

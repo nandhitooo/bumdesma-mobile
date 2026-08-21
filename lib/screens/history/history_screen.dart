@@ -10,12 +10,6 @@ import '../../widgets/gradient_app_header.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/status_badge.dart';
 
-/// Mirrors "Riwayat" screen (Gambar 3.35): daftar absensi per hari,
-/// dikelompokkan berdasarkan tanggal, dengan filter bulan.
-///
-/// Redesigned to use [GradientAppHeader] (month chip lives inside the
-/// header instead of floating awkwardly below it) and per-day
-/// [SectionCard]s that reuse [StatusBadge] for consistent status colors.
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
@@ -25,6 +19,7 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+  int _filterIndex = 0; // 0: Semua, 1: Tepat Waktu, 2: Terlambat, 3: Cuti/Lainnya
 
   Future<void> _pickMonth() async {
     final picked = await showDatePicker(
@@ -50,38 +45,43 @@ class _HistoryScreenState extends State<HistoryScreen> {
         slivers: [
           SliverToBoxAdapter(
             child: GradientAppHeader(
-              title: 'Riwayat',
-              subtitle: 'Rekap kehadiran bulanan Anda',
-              bottom: InkWell(
-                onTap: _pickMonth,
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.calendar_month_rounded,
-                          size: 16, color: Colors.white),
-                      const SizedBox(width: 8),
-                      Text(
-                        DateFormat('MMMM yyyy', 'id_ID').format(_month),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12.5,
+              title: 'Riwayat Kehadiran',
+              subtitle: 'Rekap absensi bulanan dan rincian waktu kerja',
+              bottom: Row(
+                children: [
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _pickMonth,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.calendar_month_rounded, size: 16, color: Colors.white),
+                            const SizedBox(width: 8),
+                            Text(
+                              DateFormat('MMMM yyyy', 'id_ID').format(_month),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.white),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      const Icon(Icons.keyboard_arrow_down_rounded,
-                          size: 18, color: Colors.white),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
@@ -94,37 +94,159 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   return const SliverFillRemaining(
                     hasScrollBody: false,
                     child: Center(
-                      child:
-                          CircularProgressIndicator(color: AppColors.primary),
+                      child: CircularProgressIndicator(color: AppColors.primary),
                     ),
                   );
                 }
-                final items = snapshot.data!.reversed.toList();
-                if (items.isEmpty) {
-                  return const SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: EmptyState(
-                      icon: Icons.event_busy_rounded,
-                      title: 'Belum ada data absensi',
-                      message:
-                          'Riwayat kehadiran bulan ini akan muncul di sini.',
-                    ),
-                  );
-                }
+
+                final allItems = snapshot.data!.reversed.toList();
+
+                // Compute monthly stats
+                final totalHadir = allItems.where((d) => d.jamMasuk != null).length;
+                final tepatWaktu = allItems.where((d) => d.statusMasuk == AttendanceStatus.tepatWaktu).length;
+                final terlambat = allItems.where((d) => d.statusMasuk == AttendanceStatus.terlambat).length;
+
+                // Filter items
+                final items = allItems.where((item) {
+                  if (_filterIndex == 1) {
+                    return item.statusMasuk == AttendanceStatus.tepatWaktu;
+                  }
+                  if (_filterIndex == 2) {
+                    return item.statusMasuk == AttendanceStatus.terlambat;
+                  }
+                  if (_filterIndex == 3) {
+                    return item.statusMasuk == AttendanceStatus.izinCuti || item.jamMasuk == null;
+                  }
+                  return true;
+                }).toList();
+
                 return SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) => Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: _DayCard(record: items[i]),
+                  delegate: SliverChildListDelegate([
+                    // Monthly metrics card
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        border: Border.all(color: AppColors.cardBorder, width: 1.1),
+                        boxShadow: AppShadows.soft,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _MetricItem(label: 'Total Hadir', count: totalHadir, color: AppColors.primary),
+                          _dividerVertical(),
+                          _MetricItem(label: 'Tepat Waktu', count: tepatWaktu, color: AppColors.success),
+                          _dividerVertical(),
+                          _MetricItem(label: 'Terlambat', count: terlambat, color: AppColors.warning),
+                        ],
+                      ),
                     ),
-                    childCount: items.length,
-                  ),
+                    const SizedBox(height: 16),
+
+                    // Filter chips
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _filterChip(0, 'Semua (${allItems.length})'),
+                          const SizedBox(width: 8),
+                          _filterChip(1, 'Tepat Waktu ($tepatWaktu)'),
+                          const SizedBox(width: 8),
+                          _filterChip(2, 'Terlambat ($terlambat)'),
+                          const SizedBox(width: 8),
+                          _filterChip(3, 'Izin / Tidak Masuk'),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    if (items.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: EmptyState(
+                          icon: Icons.event_busy_rounded,
+                          title: 'Tidak Ada Data',
+                          message: 'Tidak ditemukan riwayat kehadiran untuk filter ini.',
+                        ),
+                      )
+                    else
+                      ...items.map(
+                        (rec) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _DayCard(record: rec),
+                        ),
+                      ),
+                  ]),
                 );
               },
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _dividerVertical() => Container(
+        height: 36,
+        width: 1,
+        color: AppColors.cardBorder,
+      );
+
+  Widget _filterChip(int index, String label) {
+    final selected = _filterIndex == index;
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => setState(() => _filterIndex = index),
+      selectedColor: AppColors.primary,
+      backgroundColor: AppColors.surface,
+      labelStyle: TextStyle(
+        color: selected ? Colors.white : AppColors.textSecondary,
+        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+        fontSize: 12,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: selected ? AppColors.primary : AppColors.cardBorder,
+          width: 1,
+        ),
+      ),
+    );
+  }
+}
+
+class _MetricItem extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color color;
+
+  const _MetricItem({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          '$count',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            color: color,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+        ),
+      ],
     );
   }
 }
@@ -145,10 +267,24 @@ class _DayCard extends StatelessWidget {
         children: [
           Row(
             children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.calendar_today_rounded, size: 14, color: AppColors.primary),
+              ),
+              const SizedBox(width: 8),
               Expanded(
-                child: Text(dateLabel,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 13)),
+                child: Text(
+                  dateLabel,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.5,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
               ),
               if (record.date.weekday == DateTime.saturday)
                 Container(
@@ -157,12 +293,16 @@ class _DayCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.info.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
                   ),
-                  child: const Text('Piket',
-                      style: TextStyle(
-                          color: AppColors.info,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700)),
+                  child: const Text(
+                    'Piket Sabtu',
+                    style: TextStyle(
+                      color: AppColors.info,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -170,17 +310,23 @@ class _DayCard extends StatelessWidget {
           _HistoryRow(
             icon: Icons.login_rounded,
             iconColor: AppColors.success,
-            title: 'Masuk',
+            title: 'Absen Masuk',
             time: record.jamMasuk,
             status: record.statusMasuk,
+            extraText: record.statusMasuk == AttendanceStatus.terlambat && record.terlambatMenit != null
+                ? '${record.terlambatMenit}m'
+                : null,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           _HistoryRow(
             icon: Icons.logout_rounded,
             iconColor: AppColors.danger,
-            title: 'Pulang',
+            title: 'Absen Pulang',
             time: record.jamPulang,
             status: record.statusPulang,
+            extraText: record.lemburMenit != null && record.lemburMenit! > 0
+                ? '+${record.lemburMenit}m'
+                : null,
           ),
         ],
       ),
@@ -194,6 +340,7 @@ class _HistoryRow extends StatelessWidget {
   final String title;
   final DateTime? time;
   final AttendanceStatus? status;
+  final String? extraText;
 
   const _HistoryRow({
     required this.icon,
@@ -201,49 +348,58 @@ class _HistoryRow extends StatelessWidget {
     required this.title,
     required this.time,
     required this.status,
+    this.extraText,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: AppColors.surfaceAlt,
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Row(
         children: [
           Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(color: iconColor, shape: BoxShape.circle),
-            child: Icon(icon, color: Colors.white, size: 18),
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: iconColor, size: 16),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
-            child: Text(title,
-                style:
-                    const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+            child: Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            ),
           ),
           Text(
             time == null ? '--:--' : DateFormat('HH:mm').format(time!),
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: time == null ? AppColors.textMuted : AppColors.textPrimary,
+            ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           if (status != null)
-            StatusBadge(status: status!)
+            StatusBadge(status: status!, compact: true)
           else
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColors.textSecondary.withValues(alpha: 0.12),
+                color: AppColors.textMuted.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Text(
-                'Tidak Masuk',
+                'Belum Absen',
                 style: TextStyle(
                   color: AppColors.textSecondary,
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
               ),

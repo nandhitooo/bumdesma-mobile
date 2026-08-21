@@ -108,6 +108,7 @@ class HttpAttendanceService implements AttendanceService {
             ? _mapPulangStatus(row['checkout_status'] as String?)
             : null,
         lemburMenit: (row['overtime_minutes'] as num?)?.toInt(),
+        terlambatMenit: (row['late_minutes'] as num?)?.toInt(),
       );
     }).toList();
   }

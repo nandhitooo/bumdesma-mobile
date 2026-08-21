@@ -2,19 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../services/auth_service.dart';
+import '../../widgets/gradient_app_header.dart';
 
-/// Layar "Lupa Password", diakses dari LoginScreen sebelum ada sesi login
-/// sama sekali. Alurnya dua langkah:
-///
-/// 1. Karyawan memasukkan NIP -> backend mengirim kode OTP 6 digit ke
-///    email pemulihan yang tercatat pada akun tersebut (lihat
-///    AddEmailScreen / ChangePasswordScreen untuk bagaimana email itu
-///    dikumpulkan).
-/// 2. Karyawan memasukkan kode OTP dari email + password baru -> backend
-///    memverifikasi OTP dan mengganti password.
-///
-/// Pesan setelah langkah 1 sengaja generik ("jika NIP terdaftar...") -
-/// backend tidak membocorkan apakah NIP tertentu terdaftar atau tidak.
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -31,6 +20,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   int _step = 1; // 1 = masukkan NIP, 2 = masukkan OTP + password baru
   bool _loading = false;
   bool _obscure = true;
+  bool _obscureConfirm = true;
 
   @override
   void dispose() {
@@ -119,33 +109,79 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Lupa Password')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              _step == 1 ? Icons.mail_lock_outlined : Icons.pin_outlined,
-              size: 48,
-              color: AppColors.primary,
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          GradientAppHeader(
+            title: 'Lupa Kata Sandi',
+            subtitle: 'Pemulihan akun dan reset password pegawai',
+            leading: HeaderIconButton(
+              icon: Icons.arrow_back_rounded,
+              onTap: () => Navigator.of(context).maybePop(),
             ),
-            const SizedBox(height: 12),
-            Text(
-              _step == 1 ? 'Masukkan NIP Anda' : 'Masukkan Kode OTP',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+              child: Container(
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                  border: Border.all(color: AppColors.cardBorder, width: 1.1),
+                  boxShadow: AppShadows.soft,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Step Indicator Pill
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primarySoft,
+                            borderRadius: BorderRadius.circular(AppRadius.round),
+                          ),
+                          child: Text(
+                            'Langkah $_step dari 2',
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      _step == 1 ? 'Masukkan Nomor Induk Pegawai' : 'Verifikasi OTP & Buat Sandi',
+                      style: const TextStyle(
+                        fontSize: 16.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _step == 1
+                          ? 'Kode OTP 6 digit akan dikirimkan ke email pemulihan yang ditautkan pada NIP Anda.'
+                          : 'Periksa kotak masuk email Anda dan masukkan kode OTP untuk mengatur kata sandi baru.',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12.5,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    if (_step == 1) ..._buildStepOne() else ..._buildStepTwo(),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              _step == 1
-                  ? 'Kode OTP akan dikirim ke email pemulihan yang terdaftar pada akun Anda.'
-                  : 'Masukkan kode OTP yang dikirim ke email Anda, beserta password baru.',
-              style: const TextStyle(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 24),
-            if (_step == 1) ..._buildStepOne() else ..._buildStepTwo(),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -156,8 +192,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         controller: _nipController,
         keyboardType: TextInputType.number,
         decoration: const InputDecoration(
-          labelText: 'NIP',
-          prefixIcon: Icon(Icons.badge_outlined),
+          labelText: 'Nomor Induk Pegawai (NIP)',
+          hintText: 'Contoh: 19850101...',
+          prefixIcon: Icon(Icons.badge_outlined, color: AppColors.primary),
         ),
         onSubmitted: (_) => _requestOtp(),
       ),
@@ -168,12 +205,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ? const SizedBox(
                 width: 22,
                 height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.4,
-                  color: Colors.white,
-                ),
+                child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
               )
-            : const Text('Kirim Kode OTP'),
+            : const Text('Kirim Kode OTP Pemulihan'),
       ),
     ];
   }
@@ -185,27 +219,28 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         decoration: BoxDecoration(
           color: AppColors.surfaceAlt,
           borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColors.cardBorder),
         ),
         child: Row(
           children: [
-            const Icon(Icons.badge_outlined,
-                size: 18, color: AppColors.textSecondary),
+            const Icon(Icons.badge_outlined, size: 18, color: AppColors.primary),
             const SizedBox(width: 8),
             Text(
               'NIP: ${_nipController.text.trim()}',
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
             ),
           ],
         ),
       ),
-      const SizedBox(height: 14),
+      const SizedBox(height: 16),
       TextField(
         controller: _otpController,
         keyboardType: TextInputType.number,
         maxLength: 6,
         decoration: const InputDecoration(
-          labelText: 'Kode OTP',
-          prefixIcon: Icon(Icons.pin_outlined),
+          labelText: 'Kode OTP (6 Digit)',
+          hintText: '123456',
+          prefixIcon: Icon(Icons.pin_outlined, color: AppColors.primary),
           counterText: '',
         ),
       ),
@@ -214,12 +249,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         controller: _newPasswordController,
         obscureText: _obscure,
         decoration: InputDecoration(
-          labelText: 'Password Baru',
-          prefixIcon: const Icon(Icons.lock_outline),
+          labelText: 'Kata Sandi Baru (Min. 8 Karakter)',
+          prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.primary),
           suffixIcon: IconButton(
-            icon: Icon(_obscure
-                ? Icons.visibility_outlined
-                : Icons.visibility_off_outlined),
+            icon: Icon(
+              _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+              color: AppColors.textSecondary,
+            ),
             onPressed: () => setState(() => _obscure = !_obscure),
           ),
         ),
@@ -227,10 +263,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       const SizedBox(height: 14),
       TextField(
         controller: _confirmController,
-        obscureText: _obscure,
-        decoration: const InputDecoration(
-          labelText: 'Konfirmasi Password Baru',
-          prefixIcon: Icon(Icons.lock_outline),
+        obscureText: _obscureConfirm,
+        decoration: InputDecoration(
+          labelText: 'Konfirmasi Kata Sandi Baru',
+          prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.primary),
+          suffixIcon: IconButton(
+            icon: Icon(
+              _obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+              color: AppColors.textSecondary,
+            ),
+            onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+          ),
         ),
         onSubmitted: (_) => _resetPassword(),
       ),
@@ -241,18 +284,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ? const SizedBox(
                 width: 22,
                 height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.4,
-                  color: Colors.white,
-                ),
+                child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
               )
-            : const Text('Reset Password'),
+            : const Text('Simpan Kata Sandi Baru'),
       ),
       const SizedBox(height: 12),
       Center(
         child: TextButton(
           onPressed: _loading ? null : () => setState(() => _step = 1),
-          child: const Text('Ubah NIP / Kirim Ulang Kode'),
+          child: const Text('Ganti NIP / Kirim Ulang OTP'),
         ),
       ),
     ];

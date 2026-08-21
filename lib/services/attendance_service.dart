@@ -209,8 +209,7 @@ class MockAttendanceService implements AttendanceService {
 
     final lembur = now.isAfter(batasPulang);
     final lemburMenit = lembur ? now.difference(batasPulang).inMinutes : 0;
-    final status =
-        lembur ? AttendanceStatus.lembur : AttendanceStatus.diterima;
+    final status = lembur ? AttendanceStatus.lembur : AttendanceStatus.diterima;
 
     _todayByNip[nip] = record.copyWith(
       jamPulang: now,
@@ -282,7 +281,8 @@ class MockAttendanceService implements AttendanceService {
       }
     }
 
-    final list = byDay.values.toList()..sort((a, b) => a.date.compareTo(b.date));
+    final list = byDay.values.toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
     return list;
   }
 
@@ -311,10 +311,10 @@ class MockAttendanceService implements AttendanceService {
         date: date,
         jamMasuk: masuk,
         jamPulang: pulang,
-        statusMasuk: lateDay
-            ? AttendanceStatus.terlambat
-            : AttendanceStatus.tepatWaktu,
+        statusMasuk:
+            lateDay ? AttendanceStatus.terlambat : AttendanceStatus.tepatWaktu,
         statusPulang: AttendanceStatus.diterima,
+        terlambatMenit: lateDay ? 22 : null,
       ));
     }
     return list;

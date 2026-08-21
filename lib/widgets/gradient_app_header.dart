@@ -3,14 +3,9 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 
 /// Shared rounded-bottom gradient header used across Dashboard, Profile,
-/// Riwayat, Izin/Cuti, and Absen Dulu so every top-level screen reads as
-/// part of the same app instead of Dashboard being the only screen with a
-/// "designed" header and everything else falling back to a flat AppBar.
+/// Riwayat, Izin/Cuti, and Absen Dulu.
+/// Upgraded with ambient circular patterns for layered visual depth and glassmorphism buttons.
 class GradientAppHeader extends StatelessWidget {
-  /// Pass null (or leave the default) when a screen wants a fully custom
-  /// header body via [bottom] only (e.g. Dashboard's avatar+greeting
-  /// row) — in that case the title/leading/actions row is skipped
-  /// entirely instead of leaving a phantom empty row.
   final String? title;
   final String? subtitle;
   final Widget? leading;
@@ -25,7 +20,7 @@ class GradientAppHeader extends StatelessWidget {
     this.leading,
     this.actions,
     this.bottom,
-    this.padding = const EdgeInsets.fromLTRB(20, 8, 20, 26),
+    this.padding = const EdgeInsets.fromLTRB(20, 10, 20, 28),
   });
 
   @override
@@ -38,65 +33,104 @@ class GradientAppHeader extends StatelessWidget {
           colors: AppColors.headerGradient,
         ),
         borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(AppRadius.xl + 8),
-          bottomRight: Radius.circular(AppRadius.xl + 8),
+          bottomLeft: Radius.circular(AppRadius.xxl),
+          bottomRight: Radius.circular(AppRadius.xxl),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x2616423C),
-            blurRadius: 20,
-            offset: Offset(0, 8),
-          ),
-        ],
+        boxShadow: AppShadows.elevated,
       ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: padding,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (title != null && title!.isNotEmpty) ...[
-                Row(
-                  children: [
-                    if (leading != null) ...[
-                      leading!,
-                      const SizedBox(width: 8)
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(AppRadius.xxl),
+          bottomRight: Radius.circular(AppRadius.xxl),
+        ),
+        child: Stack(
+          children: [
+            // Decorative ambient shapes for depth
+            Positioned(
+              top: -40,
+              right: -30,
+              child: Container(
+                width: 160,
+                height: 160,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      AppColors.accentLight.withValues(alpha: 0.15),
+                      Colors.transparent,
                     ],
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -50,
+              left: -30,
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      Colors.white.withValues(alpha: 0.08),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: padding,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (title != null && title!.isNotEmpty) ...[
+                      Row(
                         children: [
-                          Text(title!, style: AppTextStyles.screenTitle),
-                          if (subtitle != null) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              subtitle!,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.78),
-                                fontSize: 12.5,
-                              ),
-                            ),
+                          if (leading != null) ...[
+                            leading!,
+                            const SizedBox(width: 12),
                           ],
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(title!, style: AppTextStyles.screenTitle),
+                                if (subtitle != null) ...[
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    subtitle!,
+                                    style: TextStyle(
+                                      color: Colors.white.withValues(alpha: 0.82),
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          if (actions != null) ...actions!,
                         ],
                       ),
-                    ),
-                    if (actions != null) ...actions!,
+                      if (bottom != null) const SizedBox(height: 18),
+                    ],
+                    if (bottom != null) bottom!,
                   ],
                 ),
-                if (bottom != null) const SizedBox(height: 16),
-              ],
-              if (bottom != null) bottom!,
-            ],
-          ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// Small circular glass icon button used in header actions (bell, back
-/// arrow, etc.) so every header icon looks the same across screens.
+/// Small circular glass icon button used in header actions
 class HeaderIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -111,41 +145,55 @@ class HeaderIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(24),
-      onTap: onTap,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: Colors.white, size: 22),
-          ),
-          if (showDot)
-            Positioned(
-              top: -1,
-              right: -1,
-              child: Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: AppColors.danger,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.primary, width: 2),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: onTap,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.22),
+                  width: 1.2,
                 ),
               ),
+              child: Icon(icon, color: Colors.white, size: 20),
             ),
-        ],
+            if (showDot)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  width: 11,
+                  height: 11,
+                  decoration: BoxDecoration(
+                    color: AppColors.danger,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.primaryDark, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.danger.withValues(alpha: 0.6),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Circular initial-letter avatar used in header rows (Dashboard, Profile).
+/// Circular initial-letter avatar used in header rows (Dashboard, Profile)
 class HeaderAvatar extends StatelessWidget {
   final String initial;
   final double size;
@@ -158,18 +206,35 @@ class HeaderAvatar extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.accentLight.withValues(alpha: 0.35),
+            Colors.white.withValues(alpha: 0.15),
+          ],
+        ),
         shape: BoxShape.circle,
-        border:
-            Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.4),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.45),
+          width: 1.8,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       alignment: Alignment.center,
       child: Text(
         initial,
         style: TextStyle(
           color: Colors.white,
-          fontSize: size * 0.4,
-          fontWeight: FontWeight.w700,
+          fontSize: size * 0.42,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.5,
         ),
       ),
     );

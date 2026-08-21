@@ -4,15 +4,8 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../state/auth_provider.dart';
 import '../../shell/main_shell.dart';
+import '../../widgets/gradient_app_header.dart';
 
-/// Layar wajib diisi bagi karyawan yang akunnya sudah tidak lagi lewat
-/// ChangePasswordScreen (is_first_login sudah false) tapi belum punya
-/// email pemulihan tercatat sama sekali — misalnya akun lama dari sebelum
-/// fitur email pemulihan ditambahkan. Tidak bisa dilewati (no back button)
-/// sampai email tersimpan.
-///
-/// Juga bisa dibuka secara sukarela dari Profile ("Ubah Email") untuk
-/// memperbarui email yang sudah ada.
 class AddEmailScreen extends StatefulWidget {
   const AddEmailScreen({super.key});
 
@@ -59,7 +52,7 @@ class _AddEmailScreenState extends State<AddEmailScreen> {
       if (wasVoluntary) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Email berhasil disimpan.')),
+          const SnackBar(content: Text('Email pemulihan berhasil disimpan.')),
         );
       } else {
         Navigator.of(context).pushReplacement(
@@ -81,56 +74,96 @@ class _AddEmailScreenState extends State<AddEmailScreen> {
     final voluntary = _isVoluntary;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(voluntary ? 'Ubah Email' : 'Lengkapi Email'),
-        automaticallyImplyLeading: voluntary,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (!voluntary) ...[
-              const Icon(Icons.mark_email_read_outlined,
-                  size: 48, color: AppColors.primary),
-              const SizedBox(height: 12),
-              const Text(
-                'Lengkapi Email Pemulihan',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Akun Anda belum memiliki email tercatat. Email ini dipakai untuk verifikasi jika suatu saat Anda lupa password.',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 24),
-            ],
-            TextField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                hintText: 'nama@email.com',
-                prefixIcon: Icon(Icons.email_outlined),
-              ),
-              onSubmitted: (_) => _submit(),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: auth.loading ? null : _submit,
-              child: auth.loading
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.4,
-                        color: Colors.white,
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          GradientAppHeader(
+            title: voluntary ? 'Ubah Email Terdaftar' : 'Lengkapi Email Pemulihan',
+            subtitle: voluntary
+                ? 'Perbarui alamat email akun presensi Anda'
+                : 'Tautkan email aktif untuk keperluan keamanan & reset sandi',
+            leading: voluntary
+                ? HeaderIconButton(
+                    icon: Icons.arrow_back_rounded,
+                    onTap: () => Navigator.of(context).maybePop(),
+                  )
+                : null,
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+              child: Container(
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                  border: Border.all(color: AppColors.cardBorder, width: 1.1),
+                  boxShadow: AppShadows.soft,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (!voluntary) ...[
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.warningSurface,
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          border: Border.all(color: AppColors.warningBorder),
+                        ),
+                        child: const Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.mark_email_unread_rounded, color: AppColors.warning, size: 20),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Akun Anda belum memiliki email tercatat. Email ini wajib diisi untuk verifikasi kode OTP.',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: AppColors.textPrimary,
+                                  height: 1.35,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    )
-                  : const Text('Simpan'),
+                      const SizedBox(height: 18),
+                    ],
+                    TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: 'Alamat Email Aktif',
+                        hintText: 'nama@email.com',
+                        prefixIcon: Icon(Icons.email_outlined, color: AppColors.primary),
+                        helperText: 'Pastikan email ini aktif dan dapat menerima pesan masuk.',
+                        helperMaxLines: 2,
+                      ),
+                      onSubmitted: (_) => _submit(),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: auth.loading ? null : _submit,
+                      child: auth.loading
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.4,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Simpan Email'),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
