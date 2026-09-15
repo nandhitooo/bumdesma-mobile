@@ -4,6 +4,10 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
+    <!-- Wajib di Android 13+ (API 33): tanpa ini dialog izin notifikasi
+         tidak muncul dan notif bar tidak pernah menampilkan apa pun. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
     <uses-feature android:name="android.hardware.camera" android:required="true"/>
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
 
@@ -34,6 +38,12 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Channel default kalau backend kirim notifikasi TANPA key
+             "android_channel_id" di payload FCM. Nama harus sama persis
+             dengan channel yang dibuat di lib/services/fcm_push_service.dart. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="piket" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

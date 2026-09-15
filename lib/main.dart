@@ -1,8 +1,10 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:device_preview/device_preview.dart';
 import 'core/env/env.dart';
+import 'services/fcm_push_service.dart';
 import 'core/theme/app_theme.dart';
 import 'screens/login/login_screen.dart';
 import 'services/attendance_service.dart';
@@ -25,6 +27,14 @@ Future<void> main() async {
 
   await Env.load();
   await initializeDateFormatting('id_ID', null);
+
+  // Wajib didaftarkan SEBELUM runApp supaya pesan FCM data-only yang
+  // datang saat app di background/terminated tetap tampil di notif bar.
+  // Notifikasi "notification payload" dari backend sudah otomatis
+  // ditampilkan OS; ini jaring pengaman untuk data-only message.
+  if (Env.pushNotificationsEnabled) {
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  }
 
   AuthService.instance = HttpAuthService();
   AttendanceService.instance = HttpAttendanceService();

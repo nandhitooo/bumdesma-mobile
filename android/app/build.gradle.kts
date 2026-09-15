@@ -3,16 +3,32 @@ plugins {
     id("org.jetbrains.kotlin.android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // com.google.gms.google-services TIDAK dideklarasikan di sini: versinya
+    // sudah ditetapkan di android/settings.gradle.kts (4.4.4) dan plugin
+    // di-apply kondisional di bawah. Menambahkan version di sini akan
+    // membuat build gagal ("plugin request must not include a version").
+}
+
+// Firebase Cloud Messaging (push notifikasi ke notif bar HP).
+// Diterapkan kondisional: build tetap jalan walau google-services.json
+// belum diisi (mis. build CI tanpa kredensial Firebase).
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
 }
 
 android {
     namespace = "com.bumdesma.absensi_bumdesma"
     compileSdk = 36
-    ndkVersion = flutter.ndkVersion
+    // flutter.ndkVersion (28.2) tidak terinstall utuh di mesin ini;
+    // NDK 30 terinstall valid. flutter compileSdk fallback ke 28.x bila
+    // versi eksplisit tidak ada, jadi aman untuk semua plugin saat ini.
+    ndkVersion = "30.0.16248370"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Wajib untuk flutter_local_notifications (push notifikasi).
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
@@ -33,4 +49,12 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Pasangan isCoreLibraryDesugaringEnabled di atas.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    // firebase-bom / firebase-analytics TIDAK perlu ditambah manual:
+    // plugin FlutterFire (firebase_core, firebase_messaging) sudah membawa
+    // native Firebase SDK-nya sendiri dengan versi yang cocok.
 }

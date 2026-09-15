@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/user.dart';
 import '../services/auth_service.dart';
+import '../services/fcm_push_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   AppUser? _user;
@@ -22,6 +25,11 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       _user = await AuthService.instance.login(nip: nip, password: password);
+      // Aktifkan push FCM untuk sesi ini: minta izin notifikasi (Android
+      // 13+/iOS), lalu daftarkan token perangkat ke backend atas NIP ini
+      // supaya keputusan izin/cuti & jadwal piket muncul di notif bar HP.
+      // Fire-and-forget: login tidak boleh nunggu jaringan push.
+      unawaited(FcmPushService.instance.start(nip: nip));
       return true;
     } catch (e) {
       _error = e is AuthException ? e.message : 'Terjadi kesalahan. Coba lagi.';
@@ -83,6 +91,10 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // Lepas ikatan token push dengan NIP ini di backend SEBELUM sesi
+    // dihapus: endpoint /api/push/unregister butuh Authorization Bearer,
+    // yang sudah tidak ada kalau SessionStore sudah dibersihkan dulu.
+    await FcmPushService.instance.stop();
     await AuthService.instance.logout();
     _user = null;
     notifyListeners();

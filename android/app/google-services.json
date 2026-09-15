@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1052858517390",
+    "project_id": "absensi-bumdesma",
+    "storage_bucket": "absensi-bumdesma.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1052858517390:android:53c6d6c82ac97e4f8fc6df",
+        "android_client_info": {
+          "package_name": "com.bumdesma.absensi_bumdesma"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEyrzTSO1Gn9cCW6ShOgds_fQIN5md6D4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

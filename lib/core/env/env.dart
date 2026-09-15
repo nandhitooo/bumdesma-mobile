@@ -27,4 +27,9 @@ class Env {
 
   static double get officeRadiusMeters =>
       double.tryParse(dotenv.env['OFFICE_RADIUS_METERS'] ?? '') ?? 50;
+
+  /// "true" -> FCM push diaktifkan, service dipanggil dari main.dart.
+  /// Kalau false/kosong, app jalan seperti biasa tanpa notif bar.
+  static bool get pushNotificationsEnabled =>
+      (dotenv.env['PUSH_NOTIFICATIONS_ENABLED'] ?? '').toLowerCase() == 'true';
 }
