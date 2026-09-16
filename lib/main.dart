@@ -1,8 +1,11 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
-import 'package:device_preview/device_preview.dart';
+// DevicePreview hanya di-wrap saat debug (release build tidak membungkus
+// app dengan overlay preview sama sekali).
+import 'package:device_preview/device_preview.dart' if (dart.library.io) 'package:device_preview/device_preview.dart';
 import 'core/env/env.dart';
 import 'services/fcm_push_service.dart';
 import 'core/theme/app_theme.dart';
@@ -42,13 +45,18 @@ Future<void> main() async {
   SettingsService.instance = HttpSettingsService();
   NotificationService.instance = HttpNotificationService();
 
-  runApp(
-    DevicePreview(
-      // Set ke false kalau mau build rilis biasa tanpa frame device.
-      enabled: true,
-      builder: (context) => const AbsensiBumdesmaApp(),
-    ),
-  );
+  // DevicePreview hanya aktif di debug build (flutter run tanpa --release).
+  // Production build membungkus app langsung tanpa overlay preview.
+  if (kDebugMode) {
+    runApp(
+      DevicePreview(
+        enabled: true,
+        builder: (context) => const AbsensiBumdesmaApp(),
+      ),
+    );
+  } else {
+    runApp(const AbsensiBumdesmaApp());
+  }
 }
 
 class AbsensiBumdesmaApp extends StatelessWidget {
@@ -67,11 +75,10 @@ class AbsensiBumdesmaApp extends StatelessWidget {
         title: 'BUMDESMA',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
-        // Wajib ditambahkan agar DevicePreview bisa mengatur ukuran layar,
-        // locale, dan builder-nya sendiri.
-        useInheritedMediaQuery: true,
-        locale: DevicePreview.locale(context),
-        builder: DevicePreview.appBuilder,
+        // DevicePreview hanya aktif di debug; di release locale/builder
+        // standar dipakai apa adanya.
+        locale: kDebugMode ? DevicePreview.locale(context) : null,
+        builder: kDebugMode ? DevicePreview.appBuilder : null,
         home: const LoginScreen(),
       ),
     );
