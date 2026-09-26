@@ -36,3 +36,5 @@ ios/Flutter/flutter_assets/
 build/
 android/build/
 android/app/build/
+# Knowledge graph graphify (auto-rebuild oleh post-commit hook)
+graphify-out/
