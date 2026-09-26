@@ -1,6 +1,6 @@
 import '../models/leave_request.dart';
 
-/// Handles Pengajuan Izin/Cuti (Gambar 3.25): karyawan mengisi tanggal,
+/// Handles Pengajuan Izin/Cuti (Gambar 3.25): pegawai mengisi tanggal,
 /// alasan, dan melampirkan file .pdf/.docx. Pengajuan diteruskan ke Admin
 /// lalu diputuskan oleh Pimpinan. Selama masa izin yang berstatus
 /// "Approved", akses absensi otomatis ditutup untuk tanggal tersebut.

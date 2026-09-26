@@ -1,6 +1,6 @@
 name: absensi_bumdesma
 description: >
-  Aplikasi mobile Sistem Manajemen Absensi Karyawan Berbasis QR Code
+  Aplikasi mobile Sistem Manajemen Absensi Pegawai Berbasis QR Code
   pada BUMDESMA Podo Rukun LKD.
 publish_to: "none"
 version: 1.0.0+1

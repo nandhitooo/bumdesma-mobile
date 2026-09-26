@@ -187,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          'Sistem Presensi Karyawan Digital',
+                          'Sistem Presensi Pegawai Digital',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.85),
                             fontSize: 11.5,
@@ -238,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             controller: _nipController,
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
-                              labelText: 'NIP Karyawan',
+                              labelText: 'NIP Pegawai',
                               prefixIcon: Container(
                                 margin: const EdgeInsets.all(10),
                                 padding: const EdgeInsets.all(6),

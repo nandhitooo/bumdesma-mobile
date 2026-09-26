@@ -6,11 +6,11 @@ class AuthException implements Exception {
 }
 
 /// Handles login with NIP + temporary/permanent password, and the
-/// mandatory password-change flow described in Flow Karyawan (Gambar 3.11):
-/// "Jika karyawan baru pertama kali login, sistem akan mewajibkan
+/// mandatory password-change flow described in Flow Pegawai (Gambar 3.11):
+/// "Jika pegawai baru pertama kali login, sistem akan mewajibkan
 /// penggantian password sementara menjadi password baru."
 ///
-/// Also handles the "Lupa Password" flow for a karyawan who is not logged
+/// Also handles the "Lupa Password" flow for a pegawai who is not logged
 /// in at all: [forgotPassword] sends a 6-digit OTP to the account's
 /// recovery email, and [resetPassword] verifies that OTP and sets a new
 /// password.
@@ -24,7 +24,7 @@ abstract class AuthService {
 
   /// [oldPassword] wajib diisi — backend memverifikasinya sebelum
   /// mengizinkan penggantian password. [email] wajib diisi kalau akun
-  /// karyawan ini belum punya email pemulihan tercatat sama sekali.
+  /// pegawai ini belum punya email pemulihan tercatat sama sekali.
   Future<void> changePassword({
     required String nip,
     required String oldPassword,
@@ -33,7 +33,7 @@ abstract class AuthService {
   });
 
   /// Melengkapi/memperbarui email pemulihan TANPA mengganti password.
-  /// Dipakai oleh layar "Lengkapi Email" untuk karyawan lama yang sudah
+  /// Dipakai oleh layar "Lengkapi Email" untuk pegawai lama yang sudah
   /// tidak lagi melewati layar ganti password tapi belum punya email.
   Future<void> updateEmail({required String nip, required String email});
 

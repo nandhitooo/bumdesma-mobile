@@ -28,11 +28,11 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 /// Push notification FCM end-to-end:
 ///
-/// 1. [start] dipanggil begitu karyawan berhasil login (AuthProvider.login),
+/// 1. [start] dipanggil begitu pegawai berhasil login (AuthProvider.login),
 ///    meminta izin notifikasi (Android 13+/iOS), membuat 2 channel Android
 ///    ("piket" & "izin_cuti"), lalu mendaftarkan FCM token ke backend via
 ///    POST /api/push/register ({ nip, token }) agar Admin/Pimpinan yang
-///    approve/reject izin memicu notif bar di HP karyawan ybs.
+///    approve/reject izin memicu notif bar di HP pegawai ybs.
 /// 2. Saat app di foreground, pesan FCM TIDAK otomatis tampil —
 ///    [showRemoteMessage] menampilkannya lewat flutter_local_notifications
 ///    dengan channel yang sama persis.

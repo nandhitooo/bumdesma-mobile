@@ -1,6 +1,6 @@
 # Absensi BUMDESMA Podo Rukun LKD — Mobile App (Flutter)
 
-Aplikasi mobile untuk Sistem Manajemen Absensi Karyawan Berbasis QR Code
+Aplikasi mobile untuk Sistem Manajemen Absensi Pegawai Berbasis QR Code
 pada BUMDESMA Podo Rukun LKD, dibuat sesuai mockup dan workflow pada
 Laporan Akhir (Sub Bab 3.2.6 – 3.2.10).
 
@@ -18,7 +18,7 @@ Laporan Akhir (Sub Bab 3.2.6 – 3.2.10).
   (.pdf/.docx).
 - **Riwayat**: daftar absensi bulanan dengan status berwarna.
 - **Profile**: data pegawai, reset password, log-out.
-- Aturan Sabtu piket: tombol absen otomatis disembunyikan jika karyawan
+- Aturan Sabtu piket: tombol absen otomatis disembunyikan jika pegawai
   tidak terjadwal piket pada hari Sabtu.
 
 Semua data saat ini di-mock secara in-memory lewat `services/*_service.dart`

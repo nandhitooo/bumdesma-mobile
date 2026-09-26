@@ -98,7 +98,7 @@ class ProfileScreen extends StatelessWidget {
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 2),
-            const Text('Aplikasi Presensi Karyawan v1.0.0', style: AppTextStyles.caption),
+            const Text('Aplikasi Presensi Pegawai v1.0.0', style: AppTextStyles.caption),
             const SizedBox(height: 14),
             const Text(
               'Dikembangkan untuk BUMDESMA Podo Rukun LKD guna mendukung kedisiplinan dan transparansi data kehadiran.',
@@ -133,7 +133,7 @@ class ProfileScreen extends StatelessWidget {
         slivers: [
           SliverToBoxAdapter(
             child: GradientAppHeader(
-              title: 'Profil Karyawan',
+              title: 'Profil Pegawai',
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
               bottom: Row(
                 children: [
@@ -144,7 +144,7 @@ class ProfileScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          user?.nama ?? 'Nama Karyawan',
+                          user?.nama ?? 'Nama Pegawai',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(

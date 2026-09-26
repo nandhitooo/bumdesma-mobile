@@ -366,7 +366,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        nama.isEmpty ? 'Karyawan' : nama,
+                        nama.isEmpty ? 'Pegawai' : nama,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -378,7 +378,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        jabatan.isNotEmpty ? jabatan : 'Karyawan BUMDESMA',
+                        jabatan.isNotEmpty ? jabatan : 'Pegawai BUMDESMA',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.78),
                           fontSize: 12,

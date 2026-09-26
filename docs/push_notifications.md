@@ -6,7 +6,7 @@ piket dan keputusan izin/cuti, agar notif muncul di **notif bar HP**
 
 ## Gambaran Alur
 
-1. Karyawan login di app → `AuthProvider.login` memanggil
+1. Pegawai login di app → `AuthProvider.login` memanggil
    `FcmPushService.instance.start(nip)`.
 2. `FcmPushService` meminta izin notifikasi (Android 13+ / iOS), membuat
    channel Android `piket` & `izin_cuti`, lalu mengambil FCM token perangkat.
@@ -16,7 +16,7 @@ piket dan keputusan izin/cuti, agar notif muncul di **notif bar HP**
 4. Saat Admin/Pimpinan memutuskan izin/cuti atau menekan tombol
    "Kirim Notifikasi" piket, backend `notifier.js` membuat notifikasi in-app
    (tabel `notifications`) **dan sekaligus** mengirim push FCM ke semua
-   token milik karyawan tersebut (tabel `push_tokens`).
+   token milik pegawai tersebut (tabel `push_tokens`).
 5. OS menampilkan notifikasi di notif bar (app boleh sedang background
    atau ditutup). Saat app foreground, `FcmPushService` menampilkannya
    sendiri via flutter_local_notifications.

@@ -5,7 +5,7 @@ class AppUser {
   final String departemen;
   final String? email;
   final bool mustChangePassword;
-  // True kalau akun karyawan ini belum punya email pemulihan tercatat di
+  // True kalau akun pegawai ini belum punya email pemulihan tercatat di
   // sistem — dipakai untuk mengarahkan ke layar wajib isi email.
   final bool mustAddEmail;
 
