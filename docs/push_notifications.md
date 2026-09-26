@@ -64,7 +64,7 @@ piket dan keputusan izin/cuti, agar notif muncul di **notif bar HP**
 |------|-----|
 | `src/migrations/20260914000001-create-push-tokens.js` | Tabel `push_tokens` (FK ke `users.id`, unique `(user_id, token)`) |
 | `src/models/pushToken.model.js` | Model Sequelize `PushToken` |
-| `src/services/push.service.js` | `pushToUser(userId, { title, message, type, notificationId })` via `firebase-admin` |
+| `src/services/push.service.js` | `pushToUser(userId, { title, message, type, notificationId })` via `firebase-admin` (API **modular** v14) |
 | `src/controllers/push.controller.js` | `register` / `unregister` token |
 | `src/routes/push.routes.js` | `POST /api/push/register` & `/api/push/unregister` (diproteksi `authenticate`) |
 | `src/utils/notifier.js` | Setiap `notifyUser`/`notifyUsers` otomatis menyisipkan push FCM |
@@ -78,16 +78,42 @@ npm run db:migrate         # membuat tabel push_tokens
 
 ### 2. Kredensial service account
 
-Tambahkan ke `.env` backend:
+Simpan file JSON service account di `bumdesma-backend/secrets/` (folder ini
+sudah ada di `.gitignore` dan **tidak boleh** ikut ter-commit), lalu isi
+`.env` backend dengan path **relatif** terhadap root project backend:
 
 ```
-GOOGLE_APPLICATION_CREDENTIALS=/var/secrets/bumdesma-firebase-sa.json
+GOOGLE_APPLICATION_CREDENTIALS=secrets/firebase-service-account.json
 ```
 
-`push.service.js` memanggil `admin.initializeApp()` tanpa argumen, jadi
-firebase-admin membaca env var tersebut otomatis. **Tanpa env ini server
-tetap jalan** — push FCM dilewati dengan warning `[push]` di log, dan
-notifikasi in-app tetap normal (penting untuk dev tanpa kredensial).
+Path relatif wajib, bukan path absolut. `push.service.js` me-resolve nilai
+relatif terhadap root project (bukan cwd server), supaya `.env` yang sama
+tetap benar di Windows maupun di CachyOS — path absolut seperti
+`C:\secrets\x.json` atau `/home/user/x.json` tidak portable antar OS.
+
+**Tanpa env ini server tetap jalan** — push FCM dilewati dengan warning
+`[push]` di log, dan notifikasi in-app tetap normal (penting untuk dev tanpa
+kredensial).
+
+Verifikasi sekali jalan (tanpa mengirim push ke siapa pun):
+
+```bash
+npm run push:check
+```
+
+Skrip ini memeriksa file service account ketemu, `firebase-admin` berhasil
+diinisialisasi, kredensialnya benar-benar diterima Google (lewat
+`getAccessToken()`), dan berapa perangkat yang sudah terdaftar di
+`push_tokens`.
+
+> **Catatan API firebase-admin v14.** Di v14 `admin.apps`,
+> `admin.credential`, dan `admin.messaging` pada root **sudah tidak ada**
+> (semuanya `undefined`) — API-nya sekarang modular:
+> `require('firebase-admin/app')` untuk `getApps`/`initializeApp`/`cert`, dan
+> `require('firebase-admin/messaging')` untuk `getMessaging()`. Memakai API
+> v11/v12 akan membuat `pushToUser` selalu melempar `TypeError` yang
+> tertelan `try/catch`-nya sendiri, sehingga notif bar tidak pernah muncul
+> tanpa error yang kelihatan di log.
 
 ### 3. Titik pengiriman
 
@@ -119,13 +145,26 @@ utama — semua error ditelan dengan log `[push]`.
 
 1. Setup service account di `.env` backend (langkah 2 di atas), lalu
    `npm run db:migrate` dan restart server.
-2. `flutter clean && flutter pub get`, jalankan `flutter run`.
-3. Saat pertama login, dialog "izinkan notifikasi" muncul → pilih izinkan.
-4. Cek log backend saat login: `POST /api/push/register` 200 (dengan
-   Bearer token), baris baru di tabel `push_tokens`.
-5. Trigger keputusan izin dari akun Pimpinan → notif muncul di notif bar
+2. Cek konfigurasi: `npm run push:check` → harus muncul
+   `✅ Kredensial FCM diterima Google`.
+3. Pastikan `API_BASE_URL` di `.env` mobile menunjuk ke backend yang benar
+   (lihat panduan lengkap di `.env.example`). Yang penting: nilai ini **tanpa**
+   akhiran `/api` — `ApiClient` yang menambahkan `/api`.
+   - HP/tablet fisik: `http://localhost:5000` + `adb reverse tcp:5000 tcp:5000`
+     (mapping hilang setiap adb restart / device tercabut, jadi ulangi)
+   - Emulator AVD: `http://10.0.2.2:5000`
+   - HP via Wi-Fi: `http://<IP-LAN-komputer>:5000`
+
+   Kalau salah satu tidak beres, `POST /api/push/register` ikut gagal dan
+   token tidak pernah terdaftar, sehingga tidak ada push yang bisa dikirim.
+4. `flutter clean && flutter pub get`, jalankan `flutter run`.
+5. Saat pertama login, dialog "izinkan notifikasi" muncul → pilih izinkan.
+6. Cek log backend saat login: `POST /api/push/register` 200 (dengan
+   Bearer token), baris baru di tabel `push_tokens` — atau jalankan
+   `npm run push:check` dan lihat token yang terdaftar.
+7. Trigger keputusan izin dari akun Pimpinan → notif muncul di notif bar
    HP meski app di background.
-6. App foreground → notif tetap muncul (dikirim flutter_local_notifications).
-7. Logout → baris token terhapus dari `push_tokens`.
-8. Matikan `GOOGLE_APPLICATION_CREDENTIALS` → server tetap hidup, muncul
-   warning `[push]`, notifikasi in-app tetap jalan.
+8. App foreground → notif tetap muncul (dikirim flutter_local_notifications).
+9. Logout → baris token terhapus dari `push_tokens`.
+10. Matikan `GOOGLE_APPLICATION_CREDENTIALS` → server tetap hidup, muncul
+    warning `[push]`, notifikasi in-app tetap jalan.

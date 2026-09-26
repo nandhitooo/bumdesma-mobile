@@ -50,6 +50,24 @@ native_setup/           # panduan + snippet untuk wiring key Maps ke Android/iOS
 - Flutter SDK (channel stable, ≥ 3.22) — proyek ini dibuat/diuji secara
   manual tanpa akses ke `flutter` CLI, jadi jalankan `flutter doctor`
   dulu untuk memastikan environment kamu siap.
+- **JDK 21** untuk build Android. Wajib diset lewat `flutter config --jdk-dir`,
+  **bukan** `JAVA_HOME` dan **bukan** `android/gradle.properties`:
+
+  ```bash
+  # CachyOS
+  flutter config --jdk-dir=/home/nandhitooo/.jdks/jdk-21.0.12.1+1
+  # Windows (PowerShell)
+  flutter config --jdk-dir="C:\Program Files\Java\jdk-21.0.12.1"
+  ```
+
+  Alasannya, urutan pencarian JDK di Flutter (`flutter_tools/lib/src/android/java.dart`)
+  adalah: `flutter config --jdk-dir` → **JDK bawaan Android Studio** →
+  `JAVA_HOME` → `java` di PATH. Artinya `JAVA_HOME` **kalah** oleh JBR Android
+  Studio (di mesin ini JBR 25, sedangkan Gradle 8.14.1 hanya sampai Java 24 →
+  `The Java version used for the build is 25.0.2, which is incompatible`).
+  Cek JDK yang benar-benar dipakai: `flutter doctor -v` → baris `Java binary at:`.
+- Copy `.env` dari `.env.example` kalau clone baru — `.env` di-`.gitignore`,
+  dan `flutter_dotenv` akan error saat app start kalau asset-nya tidak ada.
 
 ### 2. Install dependencies
 
@@ -103,6 +121,63 @@ berdasarkan nama paket Android / bundle ID iOS dan API yang diizinkan
 
 ```bash
 flutter run
+```
+
+## Menghubungkan app ke backend
+
+`API_BASE_URL` di `.env` harus menunjuk ke backend yang benar — nilainya
+berbeda tergantung cara menjalankan app (versi lengkap di `.env.example`):
+
+| Cara menjalankan | Nilai | Catatan |
+|---|---|---|
+| HP/tablet fisik | `http://localhost:5000` | plus `adb reverse tcp:5000 tcp:5000` |
+| Emulator (AVD) | `http://10.0.2.2:5000` | `10.0.2.2` = alias host dari dalam emulator |
+| HP via Wi-Fi | `http://<IP-LAN-komputer>:5000` | satu jaringan + port 5000 diizinkan firewall |
+
+Nilai ini **tanpa** akhiran `/api` — `ApiClient` yang menambahkan `/api`.
+
+⚠️ `adb reverse` **hilang** setiap kali adb server restart atau device
+tercabut. Gejalanya persis seperti backend mati: app tiba-tiba "tidak bisa
+login" padahal server hidup. Solusinya cukup jalankan ulang:
+
+```bash
+adb reverse tcp:5000 tcp:5000
+adb reverse --list   # untuk memastikan mapping-nya aktif
+```
+
+## Pindah OS (CachyOS ⇄ Windows)
+
+Proyek ini dikerjakan di dua OS. Ada 2 hal yang **wajib** dijaga:
+
+1. **Jangan commit/menyalin path absolut per-OS.** Yang sudah dibereskan:
+   `org.gradle.java.home` di `android/gradle.properties` (dulu berisi path
+   JDK CachyOS, bikin Gradle gagal total di Windows). Yang perlu kamu jaga:
+   `android/local.properties` berisi `sdk.dir` + `flutter.sdk` yang berbeda
+   tiap OS — file ini sudah di-`.gitignore`, jadi **jangan** disalin manual
+   antar mesin dan jangan ditaruh di folder yang di-sync (OneDrive/drive
+   bersama). Biarkan `flutter run`/Android Studio yang menulis ulang.
+2. **Selalu bersihkan cache generated saat ganti OS**, karena isinya path
+   absolut OS sebelumnya (`.flutter-plugins-dependencies` contohnya menunjuk
+   ke pub cache Windows `C:\Users\...\Pub\Cache`, sedangkan di CachyOS
+   pub cache-nya `~/.pub-cache`).
+3. `android/app/build.gradle.kts` mem-pin `ndkVersion = "30.0.16248370"`
+   (dan `compileSdk`/`targetSdk` 36). Kalau di OS satunya NDK/platform versi
+   itu belum terinstall, Gradle berhenti dengan *“No version of NDK matched”*.
+   Install lewat SDK Manager (`sdkmanager "ndk;30.0.16248370"
+   "platforms;android-36"`), atau samakan `ndkVersion` di kedua mesin.
+
+```bash
+flutter clean
+rm -rf .dart_tool build android/.gradle android/.kotlin .flutter-plugins-dependencies
+flutter pub get
+flutter run
+```
+
+Catatan: folder platform yang ada baru `android/`, `ios/`, dan `linux/`.
+Kalau mau jalan di desktop Windows, generate dulu:
+
+```bash
+flutter create --platforms=windows .
 ```
 
 ### Akun demo (mock)

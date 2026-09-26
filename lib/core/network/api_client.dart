@@ -35,7 +35,14 @@ class ApiClient {
   ApiClient._();
   static final ApiClient instance = ApiClient._();
 
-  String get _baseUrl => '${Env.apiBaseUrl}/api';
+  /// API_BASE_URL di .env boleh diisi dengan atau tanpa akhiran `/api`.
+  /// Normalisasi di sini supaya tidak pernah menjadi `<host>/api/api/...`
+  /// — kesalahan itu membuat SEMUA request 404, termasuk pendaftaran token
+  /// push ke POST /api/push/register sehingga notif bar tidak pernah muncul.
+  String get _baseUrl {
+    final raw = Env.apiBaseUrl.trim().replaceAll(RegExp(r'/+$'), '');
+    return raw.endsWith('/api') ? raw : '$raw/api';
+  }
 
   Uri _uri(String path, [Map<String, dynamic>? query]) {
     final cleanPath = path.startsWith('/') ? path : '/$path';
