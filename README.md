@@ -21,11 +21,14 @@ Laporan Akhir (Sub Bab 3.2.6 – 3.2.10).
 - Aturan Sabtu piket: tombol absen otomatis disembunyikan jika pegawai
   tidak terjadwal piket pada hari Sabtu.
 
-Semua data saat ini di-mock secara in-memory lewat `services/*_service.dart`
-(masing-masing punya `abstract class` + implementasi mock), sehingga tinggal
-menulis implementasi baru yang memanggil backend Node.js kamu dan mengganti
-`SomeService.instance = RealService()` di `main.dart` / masing-masing file
-service — tidak perlu mengubah UI sama sekali.
+App sudah terhubung ke backend nyata: `main.dart` mengganti semua service
+dengan implementasi HTTP (`HttpAuthService`, `HttpAttendanceService`,
+`HttpLeaveService`, `HttpSettingsService`, `HttpNotificationService`)
+yang memanggil REST API Node.js lewat `core/network/api_client.dart`.
+Implementasi mock di `services/*_service.dart` dipertahankan sebagai
+fallback/demo tanpa server — cukup tukar kembali
+`XxxService.instance = MockXxxService()` di `main.dart`.
+Tidak ada kode UI yang perlu diubah.
 
 ## Struktur proyek
 
@@ -33,7 +36,7 @@ service — tidak perlu mengubah UI sama sekali.
 lib/
   core/           # theme, .env wrapper, geofencing math (Haversine)
   models/         # AppUser, DailyAttendance, ScanResult, LeaveRequest, dll
-  services/       # mock services (auth, attendance, leave, notification, settings)
+  services/       # interface service + implementasi mock & HTTP (auth, attendance, leave, notification, settings)
   state/          # AuthProvider, AttendanceProvider (ChangeNotifier)
   screens/        # login, dashboard, scan, leave, history, profile
   shell/          # bottom navigation (Beranda/Riwayat/Scan/Izin/Profil)
@@ -54,7 +57,7 @@ native_setup/           # panduan + snippet untuk wiring key Maps ke Android/iOS
   **bukan** `JAVA_HOME` dan **bukan** `android/gradle.properties`:
 
   ```bash
-  # CachyOS
+  # Linux
   flutter config --jdk-dir=/home/nandhitooo/.jdks/jdk-21.0.12.1+1
   # Windows (PowerShell)
   flutter config --jdk-dir="C:\Program Files\Java\jdk-21.0.12.1"
@@ -66,6 +69,7 @@ native_setup/           # panduan + snippet untuk wiring key Maps ke Android/iOS
   Studio (di mesin ini JBR 25, sedangkan Gradle 8.14.1 hanya sampai Java 24 →
   `The Java version used for the build is 25.0.2, which is incompatible`).
   Cek JDK yang benar-benar dipakai: `flutter doctor -v` → baris `Java binary at:`.
+
 - Copy `.env` dari `.env.example` kalau clone baru — `.env` di-`.gitignore`,
   dan `flutter_dotenv` akan error saat app start kalau asset-nya tidak ada.
 
@@ -128,11 +132,11 @@ flutter run
 `API_BASE_URL` di `.env` harus menunjuk ke backend yang benar — nilainya
 berbeda tergantung cara menjalankan app (versi lengkap di `.env.example`):
 
-| Cara menjalankan | Nilai | Catatan |
-|---|---|---|
-| HP/tablet fisik | `http://localhost:5000` | plus `adb reverse tcp:5000 tcp:5000` |
-| Emulator (AVD) | `http://10.0.2.2:5000` | `10.0.2.2` = alias host dari dalam emulator |
-| HP via Wi-Fi | `http://<IP-LAN-komputer>:5000` | satu jaringan + port 5000 diizinkan firewall |
+| Cara menjalankan | Nilai                           | Catatan                                      |
+| ---------------- | ------------------------------- | -------------------------------------------- |
+| HP/tablet fisik  | `http://localhost:5000`         | plus `adb reverse tcp:5000 tcp:5000`         |
+| Emulator (AVD)   | `http://10.0.2.2:5000`          | `10.0.2.2` = alias host dari dalam emulator  |
+| HP via Wi-Fi     | `http://<IP-LAN-komputer>:5000` | satu jaringan + port 5000 diizinkan firewall |
 
 Nilai ini **tanpa** akhiran `/api` — `ApiClient` yang menambahkan `/api`.
 
@@ -162,9 +166,9 @@ Proyek ini dikerjakan di dua OS. Ada 2 hal yang **wajib** dijaga:
    pub cache-nya `~/.pub-cache`).
 3. `android/app/build.gradle.kts` mem-pin `ndkVersion = "30.0.16248370"`
    (dan `compileSdk`/`targetSdk` 36). Kalau di OS satunya NDK/platform versi
-   itu belum terinstall, Gradle berhenti dengan *“No version of NDK matched”*.
+   itu belum terinstall, Gradle berhenti dengan _“No version of NDK matched”_.
    Install lewat SDK Manager (`sdkmanager "ndk;30.0.16248370"
-   "platforms;android-36"`), atau samakan `ndkVersion` di kedua mesin.
+"platforms;android-36"`), atau samakan `ndkVersion` di kedua mesin.
 
 ```bash
 flutter clean
@@ -180,12 +184,21 @@ Kalau mau jalan di desktop Windows, generate dulu:
 flutter create --platforms=windows .
 ```
 
-### Akun demo (mock)
+### Akun demo (backend seeder)
 
-| NIP | Password | Catatan |
-|---|---|---|
-| 3124510004 | temp1234 | Wajib ganti password (login pertama), terjadwal piket Sabtu |
-| 3124510099 | sudahaman1 | Password sudah permanen |
+Dibuat oleh seeder backend
+`bumdesma-backend/src/seeders/20260101000002-users.js`
+(`npx sequelize-cli db:seed:all` di folder backend). Login ini memakai
+backend nyata — bukan lagi mock service.
+
+| NIP        | Password    | Catatan                                                  |
+| ---------- | ----------- | -------------------------------------------------------- |
+| 3124510004 | 12345678    | Password permanen — langsung masuk dashboard             |
+| KAR001     | Pegawai@123 | Wajib ganti password saat login pertama (is_first_login) |
+
+⚠️ Akun **admin** tidak bisa dipakai login di app mobile: admin tersimpan
+di tabel `admin_accounts` yang terpisah dari `users` pegawai, dan hanya
+bisa login lewat web frontend.
 
 QR Code yang valid untuk demo scan: buat QR Code apa saja yang berisi
 teks persis berikut (misal via generator QR online), lalu scan dengan
@@ -201,18 +214,17 @@ radius `OFFICE_RADIUS_METERS`), saat testing di emulator kamu bisa
 mengatur lokasi mock emulator ke koordinat yang sama agar validasi
 lolos (di Android Studio: Extended Controls → Location).
 
-## Menghubungkan ke backend nyata
+## Menghubungkan ke backend nyata (sudah terpasang)
 
-Setiap file di `lib/services/` punya:
+Semua service sudah di-wiring ke implementasi HTTP di `main.dart`:
 
 ```dart
-abstract class XxxService {
-  static XxxService instance = MockXxxService();
-  ...
-}
+AuthService.instance = HttpAuthService(); // dst. untuk attendance, leave,
+                                          // settings, notification
 ```
 
-Buat `class RealXxxService implements XxxService { ... }` yang memanggil
-`Env.apiBaseUrl` via package `http`, lalu di `main.dart` (atau titik
-inisialisasi lain) set `XxxService.instance = RealXxxService()` sebelum
-`runApp()`. Tidak ada kode UI yang perlu diubah.
+`HttpAuthService` dkk. memakai `ApiClient` (package `http`) yang membaca
+`Env.apiBaseUrl` dari `.env` — lihat bagian "Menghubungkan app ke backend"
+di atas untuk nilai `API_BASE_URL` per skenario (HP fisik/emulator/Wi-Fi).
+Kalau butuh mode demo tanpa server, cukup kembalikan
+`XxxService.instance = MockXxxService()` di `main.dart`.

@@ -129,7 +129,70 @@ terpush lewat `notifier.js`:
 milik user (satu orang bisa login di >1 perangkat), memilih channel
 Android sesuai `type`, lalu menghapus token invalid (app diuninstall)
 dari `push_tokens`. Push gagal **tidak pernah** menggagalkan request
-utama — semua error ditelan dengan log `[push]`.
+utama — semua error ditelan dengan log `[push]`. Dan kalau tabel
+`push_tokens` tidak punya baris untuk user ybs, `pushToUser` balik
+tanpa memanggil FCM sama sekali — lihat "Jebakan Umum" di bawah.
+
+## Jebakan Umum: Token Kosong (push tidak berbunyi walau semua "sudah disetup")
+
+Gejala: konfigurasi terlihat lengkap (service account OK, kredensial
+diterima Google, app tidak crash), tapi push tidak pernah muncul atau
+berbunyi. Jalankan `npm run push:check` — kalau muncul:
+
+```
+⚠️  Belum ada perangkat terdaftar di tabel push_tokens.
+```
+
+…itu penyebabnya, dan memang **diam-diam**: `pushToUser()` mencari token
+penerima di tabel `push_tokens` dan kalau kosong langsung balik tanpa
+error, tanpa log, tanpa memanggil FCM. Backend hanya tidak punya target
+kirim. Payload bunyi/channel di sisi app bisa sebenus apa pun — tidak ada
+pesan yang dikirim berarti tidak ada yang berbunyi.
+
+Kenapa token bisa kosong padahal user sudah berhasil login:
+
+- Registrasi token (`FcmPushService._registerToken` →
+  `POST /api/push/register`) **menelan error tanpa log**
+  (`catch (_) {}`), jadi kegagalannya tidak terlihat di log app maupun
+  backend.
+- Registrasi memakai `ApiClient` → `API_BASE_URL`, jalur yang sama dengan
+  REST API utama. Kalau `adb reverse` hilang / backend tidak jalan /
+  `API_BASE_URL` salah pada saat login, `POST /auth/login` pun ikut gagal
+  — tapi cukup satu kegagalan kecil setelah login sukses (device
+  tercabut, adb restart, jaringan putus) agar register gagal diam-diam
+  dan token tidak pernah sampai ke backend.
+- Dialog izin notifikasi (Android 13+) yang ditolak TIDAK mencegah
+  registrasi token — `getToken()` tetap jalan; yang diblokir hanya
+  tampilannya. Jadi token kosong bukan karena permission.
+
+Cara memverifikasi & memperbaiki:
+
+1. Setelah setiap login, jalankan di folder backend:
+
+   ```bash
+   npm run push:check
+   ```
+
+   Wajib muncul `✅ N token terdaftar` (N ≥ 1) SEBELUM mengetes bunyi
+   notifikasi. Kalau masih `⚠️ Belum ada perangkat terdaftar`, push pasti
+   tidak terkirim — perbaiki dulu, jangan lanjut ke tes notif.
+2. Token masih kosong setelah login ulang (full restart `flutter run`,
+   bukan hot reload — token didaftarkan saat `start()` di alur login):
+   - HP fisik: `adb reverse --list` harus menampilkan `tcp:5000
+     tcp:5000`; jalankan ulang `adb reverse tcp:5000 tcp:5000` kalau
+     kosong, lalu login ulang.
+   - Emulator/Wi-Fi: cek `API_BASE_URL` di `.env` mobile
+     (`10.0.2.2` / IP-LAN), lalu build ulang.
+   - Pastikan backend hidup di OS yang sama dengan adb dan
+     `API_BASE_URL`-nya benar.
+3. Baru setelah token terdaftar: picu notifikasi (keputusan izin dari
+   Pimpinan / penugasan piket). Payload `notification` + `channel_id`
+   dengan channel `Importance.max` otomatis berbunyi + heads-up di
+   Android — tidak ada setting bunyi terpisah yang perlu diaktifkan.
+4. Catatan Android: kalau dulu terpasang build lama, preferensi channel
+   bisa tertanam dari build lama (mis. importance rendah = tanpa bunyi).
+   Uninstall atau clear storage app sebelum tes supaya channel `piket`
+   & `izin_cuti` dibuat ulang fresh oleh `FcmPushService`.
 
 ## Format Payload
 
@@ -161,7 +224,10 @@ utama — semua error ditelan dengan log `[push]`.
 5. Saat pertama login, dialog "izinkan notifikasi" muncul → pilih izinkan.
 6. Cek log backend saat login: `POST /api/push/register` 200 (dengan
    Bearer token), baris baru di tabel `push_tokens` — atau jalankan
-   `npm run push:check` dan lihat token yang terdaftar.
+   `npm run push:check` dan lihat token yang terdaftar. **Wajib ≥ 1
+   token terdaftar sebelum lanjut** — kalau masih kosong, lihat
+   bagian "Jebakan Umum: Token Kosong" di atas; push tidak akan pernah
+   terkirim walau semua langkah lain hijau.
 7. Trigger keputusan izin dari akun Pimpinan → notif muncul di notif bar
    HP meski app di background.
 8. App foreground → notif tetap muncul (dikirim flutter_local_notifications).

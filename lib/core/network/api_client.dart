@@ -39,7 +39,10 @@ class ApiClient {
   /// Normalisasi di sini supaya tidak pernah menjadi `<host>/api/api/...`
   /// — kesalahan itu membuat SEMUA request 404, termasuk pendaftaran token
   /// push ke POST /api/push/register sehingga notif bar tidak pernah muncul.
-  String get _baseUrl {
+  ///
+  /// Publik supaya pesan error koneksi (mis. AuthProvider) menampilkan URL
+  /// yang benar-benar dicoba, bukan alamat hardcode yang bisa usang.
+  String get baseUrl {
     final raw = Env.apiBaseUrl.trim().replaceAll(RegExp(r'/+$'), '');
     return raw.endsWith('/api') ? raw : '$raw/api';
   }
@@ -48,7 +51,7 @@ class ApiClient {
     final cleanPath = path.startsWith('/') ? path : '/$path';
     final normalizedQuery =
         query?.map((k, v) => MapEntry(k, v?.toString())) ?? const {};
-    return Uri.parse('$_baseUrl$cleanPath').replace(
+    return Uri.parse('$baseUrl$cleanPath').replace(
         queryParameters: normalizedQuery.isEmpty ? null : normalizedQuery);
   }
 
