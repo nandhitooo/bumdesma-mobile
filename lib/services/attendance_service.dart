@@ -46,6 +46,12 @@ abstract class AttendanceService {
     String nip, {
     required DateTime month,
   });
+
+  /// Mulai akuisisi posisi lebih awal (dipanggil saat layar scan dibuka)
+  /// supaya fix GPS sudah siap ketika QR selesai dipindai. Aman dipanggil
+  /// berkali-kali; hasilnya dipakai sekali oleh [scan]. Kegagalan akuisisi
+  /// baru terasa saat [scan] dijalankan, bukan di sini.
+  void warmUpLocation();
 }
 
 class MockAttendanceService implements AttendanceService {
@@ -235,6 +241,11 @@ class MockAttendanceService implements AttendanceService {
     final list = _historyByNip.putIfAbsent(nip, () => []);
     list.removeWhere((r) => _dateOnly(r.date) == _dateOnly(record.date));
     list.add(record);
+  }
+
+  @override
+  void warmUpLocation() {
+    // Mock mengambil posisi langsung saat scan(); prefetch tidak diperlukan.
   }
 
   Future<Position> _getCurrentPosition() async {

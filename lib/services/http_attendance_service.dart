@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 
@@ -151,7 +153,38 @@ class HttpAttendanceService implements AttendanceService {
     return AttendanceStatus.ditolakSudahLengkap;
   }
 
-  Future<Position> _getCurrentPosition() async {
+  /// Batas tunggu fix GPS. Radius geofence kantor hanya puluhan meter, jadi
+  /// akurasi high tetap dipertahankan; yang membuat absensi terasa lama
+  /// adalah menunggu fix GPS murni (indoor/sinyal buruk bisa 30 detik lebih
+  /// tanpa batas). timeLimit membatasi tunggu maksimum, dan bila timeout
+  /// kita jatuh ke posisi terakhir yang sudah diketahui sistem. Backend
+  /// tetap memvalidasi radius, jadi posisi basi hanya berujung penolakan
+  /// dengan pesan jarak, bukan data absensi yang salah.
+  static const _positionTimeLimit = Duration(seconds: 10);
+
+  /// Hasil [warmUpLocation]: akuisisi yang dimulai sejak layar scan dibuka,
+  /// paralel dengan pemindaian QR. Dikonsumsi sekali oleh scan(); null
+  /// berarti tidak ada prefetch aktif (atau sudah terpakai).
+  Future<Position>? _positionPrefetch;
+
+  @override
+  void warmUpLocation() {
+    if (_positionPrefetch != null) return;
+    final future = _acquirePosition();
+    // Listener no-op: kalau user keluar tanpa scan, kegagalan akuisisi
+    // (mis. timeout tanpa posisi terakhir) tidak menjadi unhandled error.
+    unawaited(future.then<void>((_) {}, onError: (Object _) {}));
+    _positionPrefetch = future;
+  }
+
+  /// Pakai hasil prefetch bila ada, kalau tidak mulai akuisisi baru.
+  Future<Position> _getCurrentPosition() {
+    final prefetch = _positionPrefetch;
+    _positionPrefetch = null;
+    return prefetch ?? _acquirePosition();
+  }
+
+  Future<Position> _acquirePosition() async {
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -170,8 +203,19 @@ class HttpAttendanceService implements AttendanceService {
       );
     }
 
-    return Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-    );
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: _positionTimeLimit,
+        ),
+      );
+    } on TimeoutException {
+      // GPS tidak menghasilkan fix dalam batas waktu (typical indoor):
+      // pakai posisi terakhir yang diketahui sistem, kalau ada.
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null) return lastKnown;
+      rethrow;
+    }
   }
 }

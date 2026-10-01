@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../models/attendance.dart';
+import '../../services/attendance_service.dart';
 import '../../state/attendance_provider.dart';
 import '../../state/auth_provider.dart';
 import 'result/scan_result_screen.dart';
@@ -31,6 +32,10 @@ class _ScanCameraScreenState extends State<ScanCameraScreen>
   @override
   void initState() {
     super.initState();
+    // Prefetch GPS: akuisisi dimulai sejak layar ini dibuka, paralel dengan
+    // kamera. Saat QR selesai dipindai posisi biasanya sudah siap, sehingga
+    // scan() tidak lagi menunggu fix GPS (sumber latensi terbesar absensi).
+    AttendanceService.instance.warmUpLocation();
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2000),
