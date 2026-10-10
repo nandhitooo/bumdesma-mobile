@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import '../core/network/api_client.dart';
+import '../models/piket_assignment.dart';
 import '../models/work_schedule.dart';
 import 'settings_service.dart';
 
@@ -53,6 +54,15 @@ class HttpSettingsService implements SettingsService {
     final rows = (res['data'] as List).cast<Map<String, dynamic>>();
     final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
     return rows.any((r) => r['tanggal'] == todayStr);
+  }
+
+  /// Seluruh jadwal piket pegawai yang login. Baris dari fitur giliran (cycle)
+  /// ditandai `source = 'rotation'` oleh backend (utils/piketRotation.js).
+  @override
+  Future<List<PiketAssignment>> getMyPiket() async {
+    final res = await _api.get('/piket/me');
+    final rows = (res['data'] as List).cast<Map<String, dynamic>>();
+    return rows.map(PiketAssignment.fromJson).toList();
   }
 
   // Backend TIME column comes back as 'HH:mm:ss'.

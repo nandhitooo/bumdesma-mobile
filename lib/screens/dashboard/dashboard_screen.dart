@@ -14,6 +14,7 @@ import '../leave/leave_form_screen.dart';
 import '../notification/notification_panel.dart';
 import '../scan/scan_select_screen.dart';
 import 'widgets/attendance_summary_card.dart';
+import 'widgets/piket_next_card.dart';
 import 'widgets/quick_action_tile.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -238,6 +239,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     loading: attendance.loading,
                     schedule: settings.schedule,
                   ),
+                  if (settings.nextPiket != null) ...[
+                    const SizedBox(height: 16),
+                    PiketNextCard(assignment: settings.nextPiket!),
+                  ],
                   const SizedBox(height: 24),
                   const Row(
                     children: [

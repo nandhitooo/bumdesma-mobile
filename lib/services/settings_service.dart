@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/env/env.dart';
+import '../models/piket_assignment.dart';
 import '../models/work_schedule.dart';
 
 /// Provides the system configuration that, per the report, is normally
@@ -19,6 +20,10 @@ abstract class SettingsService {
   /// 3.2.7 point 2: if it's Saturday and the employee is NOT on the piket
   /// roster, the scan button must not be shown at all.
   Future<bool> isAssignedSaturdayPiket(String nip);
+
+  /// Seluruh jadwal piket pegawai yang login (`GET /api/piket/me`), termasuk
+  /// yang dibuat otomatis oleh fitur giliran (cycle) piket.
+  Future<List<PiketAssignment>> getMyPiket();
   Future<List<DateTime>> getNationalHolidays();
 }
 
@@ -46,6 +51,17 @@ class MockSettingsService implements SettingsService {
   Future<bool> isAssignedSaturdayPiket(String nip) async {
     await Future.delayed(const Duration(milliseconds: 100));
     return _piketRoster.contains(nip);
+  }
+
+  @override
+  Future<List<PiketAssignment>> getMyPiket() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+    // Sabtu terdekat (hari ini kalau kebetulan Sabtu), sebagai contoh giliran.
+    final now = DateTime.now();
+    final daysUntilSaturday = (DateTime.saturday - now.weekday + 7) % 7;
+    final nextSaturday =
+        DateTime(now.year, now.month, now.day).add(Duration(days: daysUntilSaturday));
+    return [PiketAssignment(tanggal: nextSaturday, source: 'rotation')];
   }
 
   @override
