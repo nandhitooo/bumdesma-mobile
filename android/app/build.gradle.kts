@@ -19,10 +19,10 @@ if (file("google-services.json").exists()) {
 android {
     namespace = "com.bumdesma.absensi_bumdesma"
     compileSdk = 36
-    // flutter.ndkVersion (28.2) tidak terinstall utuh di mesin ini;
-    // NDK 30 terinstall valid. flutter compileSdk fallback ke 28.x bila
-    // versi eksplisit tidak ada, jadi aman untuk semua plugin saat ini.
-    ndkVersion = "30.0.16248370"
+    // Ikut NDK yang dideklarasikan Flutter SDK (28.2.13676358 untuk Flutter
+    // 3.47.7), bukan versi hardcode per mesin — dulu dipaku "30.0.16248370"
+    // sebagai workaround lokal sehingga build patah di mesin lain.
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

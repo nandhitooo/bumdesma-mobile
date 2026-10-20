@@ -50,25 +50,38 @@ native_setup/           # panduan + snippet untuk wiring key Maps ke Android/iOS
 
 ### 1. Prasyarat
 
-- Flutter SDK (channel stable, ≥ 3.22) — proyek ini dibuat/diuji secara
-  manual tanpa akses ke `flutter` CLI, jadi jalankan `flutter doctor`
-  dulu untuk memastikan environment kamu siap.
-- **JDK 21** untuk build Android. Wajib diset lewat `flutter config --jdk-dir`,
-  **bukan** `JAVA_HOME` dan **bukan** `android/gradle.properties`:
+- **Flutter 3.47.7** (channel stable) dengan **Dart 3.13.5** — versi inilah
+  yang dipakai untuk `flutter analyze` dan `flutter build apk --debug`
+  terakhir. `pubspec.yaml` memaku Flutter ke `>=3.44.0 <=3.47.7` (3.44.0
+  adalah constraint Flutter tertinggi yang diminta dependency yang
+  ter-resolve, mis. `google_maps_flutter_android`). Jalankan
+  `flutter doctor` dulu untuk memastikan environment kamu siap.
+- **JDK 17** (diuji dengan OpenJDK 17.0.20.1) untuk build Android. Wajib diset
+  lewat `flutter config --jdk-dir`, **bukan** `JAVA_HOME` dan **bukan**
+  `android/gradle.properties`:
 
   ```bash
   # Linux
-  flutter config --jdk-dir=/home/nandhitooo/.jdks/jdk-21.0.12.1+1
+  flutter config --jdk-dir=/usr/lib/jvm/java-17-openjdk
   # Windows (PowerShell)
-  flutter config --jdk-dir="C:\Program Files\Java\jdk-21.0.12.1"
+  flutter config --jdk-dir="C:\Program Files\Java\jdk-17"
   ```
 
   Alasannya, urutan pencarian JDK di Flutter (`flutter_tools/lib/src/android/java.dart`)
   adalah: `flutter config --jdk-dir` → **JDK bawaan Android Studio** →
   `JAVA_HOME` → `java` di PATH. Artinya `JAVA_HOME` **kalah** oleh JBR Android
-  Studio (di mesin ini JBR 25, sedangkan Gradle 8.14.1 hanya sampai Java 24 →
-  `The Java version used for the build is 25.0.2, which is incompatible`).
+  Studio (di mesin uji JBR-nya Java 25, jadi tanpa `jdk-dir` Gradle jalan
+  dengan Java 25 dan build gagal).
   Cek JDK yang benar-benar dipakai: `flutter doctor -v` → baris `Java binary at:`.
+- Toolchain Android di repo: **Gradle 9.3.1**, **AGP 8.13.1**, **Kotlin 2.2.20**,
+  `compileSdk`/`targetSdk` 36, `ndkVersion` mengikuti `flutter.ndkVersion`
+  (28.2.13676358 untuk Flutter 3.47.7).
+  - AGP sengaja di jalur 8.x: AGP 9.x mematahkan beberapa plugin Flutter.
+  - Gradle **jangan** dinaikkan ke 9.6+ selama AGP masih 8.x — Gradle 9.6
+    menghapus `org.gradle.api.problems.internal.InternalProblems` yang masih
+    dipakai AGP 8.x, build langsung gagal dengan
+    "a Gradle internal API that was removed in Gradle 9.6.0". 9.3.1 = versi
+    yang dipakai template `flutter create` di Flutter 3.47.7.
 
 - Copy `.env` dari `.env.example` kalau clone baru — `.env` di-`.gitignore`,
   dan `flutter_dotenv` akan error saat app start kalau asset-nya tidak ada.
