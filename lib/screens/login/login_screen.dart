@@ -46,21 +46,21 @@ class _LoginScreenState extends State<LoginScreen> {
           MaterialPageRoute(builder: (_) => const AddEmailScreen()),
         );
       } else {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainShell()),
-        );
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => const MainShell()));
       }
     } else if (auth.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(auth.error!)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(auth.error!)));
     }
   }
 
   void _openForgotPassword() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()));
   }
 
   @override
@@ -111,7 +111,8 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  minHeight: MediaQuery.of(context).size.height -
+                  minHeight:
+                      MediaQuery.of(context).size.height -
                       MediaQuery.of(context).padding.top -
                       MediaQuery.of(context).padding.bottom,
                 ),
@@ -146,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: Image.asset(
                               'assets/images/podo-rukun.png',
                               fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => const Icon(
+                              errorBuilder: (_, _, _) => const Icon(
                                 Icons.business_rounded,
                                 color: AppColors.primary,
                                 size: 48,
@@ -181,7 +182,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 8),
                     Center(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(20),
@@ -203,7 +207,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(AppRadius.xxl),
-                        border: Border.all(color: AppColors.cardBorder, width: 1.2),
+                        border: Border.all(
+                          color: AppColors.cardBorder,
+                          width: 1.2,
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.16),
@@ -293,7 +300,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: TextButton(
                               onPressed: _openForgotPassword,
                               style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 6,
+                                ),
                                 minimumSize: const Size(0, 0),
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
@@ -319,7 +329,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderRadius: BorderRadius.circular(AppRadius.md),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.accent.withValues(alpha: 0.35),
+                                  color: AppColors.accent.withValues(
+                                    alpha: 0.35,
+                                  ),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -328,7 +340,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: Material(
                               color: Colors.transparent,
                               child: InkWell(
-                                borderRadius: BorderRadius.circular(AppRadius.md),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.md,
+                                ),
                                 onTap: auth.loading ? null : _submit,
                                 child: Center(
                                   child: auth.loading
@@ -341,7 +355,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                           ),
                                         )
                                       : const Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
                                             Text(
                                               'Masuk Sekarang',

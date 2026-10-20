@@ -104,7 +104,9 @@ class GradientAppHeader extends StatelessWidget {
                                   Text(
                                     subtitle!,
                                     style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.82),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.82,
+                                      ),
                                       fontSize: 12.5,
                                       fontWeight: FontWeight.w400,
                                     ),
@@ -113,12 +115,12 @@ class GradientAppHeader extends StatelessWidget {
                               ],
                             ),
                           ),
-                          if (actions != null) ...actions!,
+                          ...?actions,
                         ],
                       ),
                       if (bottom != null) const SizedBox(height: 18),
                     ],
-                    if (bottom != null) bottom!,
+                    ?bottom,
                   ],
                 ),
               ),

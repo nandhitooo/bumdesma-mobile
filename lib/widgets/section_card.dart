@@ -50,12 +50,9 @@ class SectionCard extends StatelessWidget {
                   const SizedBox(width: 10),
                 ],
                 Expanded(
-                  child: Text(
-                    title!,
-                    style: AppTextStyles.sectionTitle,
-                  ),
+                  child: Text(title!, style: AppTextStyles.sectionTitle),
                 ),
-                if (trailing != null) trailing!,
+                ?trailing,
               ],
             ),
             const SizedBox(height: 14),
@@ -97,10 +94,7 @@ class EmptyState extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  AppColors.surfaceAlt,
-                  AppColors.primarySoft,
-                ],
+                colors: [AppColors.surfaceAlt, AppColors.primarySoft],
               ),
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.cardBorder, width: 1.2),
@@ -125,10 +119,7 @@ class EmptyState extends StatelessWidget {
               style: AppTextStyles.caption.copyWith(fontSize: 13),
             ),
           ],
-          if (action != null) ...[
-            const SizedBox(height: 16),
-            action!,
-          ],
+          if (action != null) ...[const SizedBox(height: 16), action!],
         ],
       ),
     );
